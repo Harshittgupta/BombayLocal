@@ -7,6 +7,9 @@
   "protocol": "groth16",
   "curve": "bn128",
   "nPublic": 5,
+  "constraints": 5697,
+  "privateInputs": 24,
+  "outputs": 0,
   "sha256": {
     "pass.wasm": "e69f7155b9f8fd493cc2c69b2b582805b7d912de859d09cdd4e40b509e5aa7fa",
     "pass_final.zkey": "d289253e175f4c463f8487226e13976f3eadf59b6a0b5eef619f6ed03b7d99c4",

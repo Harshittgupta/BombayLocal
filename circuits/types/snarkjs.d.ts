@@ -15,6 +15,9 @@ declare module "snarkjs" {
     ): Promise<{ proof: Groth16Proof; publicSignals: string[] }>;
     verify(vk: unknown, publicSignals: string[], proof: Groth16Proof): Promise<boolean>;
   };
+  export const r1cs: {
+    info(r1csFile: string): Promise<{ nConstraints: number; nPrvInputs: number; nPubInputs: number; nOutputs: number }>;
+  };
   export const zKey: {
     contribute(oldZkey: string, newZkey: string, name: string, entropy: string): Promise<Uint8Array>;
     verifyFromR1cs(r1cs: string, ptau: string, zkey: string): Promise<boolean>;

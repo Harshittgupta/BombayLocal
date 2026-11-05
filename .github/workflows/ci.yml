@@ -47,3 +47,24 @@ jobs:
             exit 1
           fi
           echo "Clean: no mocks outside tests/fixtures/docs."
+
+  tests:
+    name: Protocol and circuit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: protocol (unit tests)
+        working-directory: protocol
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+      - name: circuits (real Groth16 proofs from committed artifacts, fixtures re-verified)
+        working-directory: circuits
+        run: |
+          npm ci
+          npm run typecheck
+          npm test

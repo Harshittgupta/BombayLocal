@@ -2,6 +2,7 @@
 // rule R1) and records their hashes. The verification-key hash is what the scanner APK and audit page pin.
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import * as snarkjs from "snarkjs";
 
 const FILES: Record<string, string> = {
   "pass.wasm": "build/pass_js/pass.wasm",
@@ -18,6 +19,7 @@ for (const [name, src] of Object.entries(FILES)) {
   hashes[name] = sha256(`artifacts/${name}`);
 }
 const vk = JSON.parse(readFileSync("artifacts/verification_key.json", "utf8"));
+const r1cs = await snarkjs.r1cs.info("build/pass.r1cs");
 const manifest = {
   circuit: "pass.circom",
   circom: "2.2.3",
@@ -27,7 +29,11 @@ const manifest = {
   protocol: vk.protocol,
   curve: vk.curve,
   nPublic: vk.nPublic,
+  constraints: r1cs.nConstraints,
+  privateInputs: r1cs.nPrvInputs,
+  outputs: r1cs.nOutputs,
   sha256: hashes,
 };
 writeFileSync("artifacts/manifest.json", JSON.stringify(manifest, null, 2) + "\n");
 console.log(JSON.stringify(manifest, null, 2));
+process.exit(0); // snarkjs leaves worker threads alive
