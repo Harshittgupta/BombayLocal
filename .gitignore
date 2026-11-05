@@ -21,3 +21,10 @@ circuits/build/tmp/
 # Build output
 out/
 cache/
+
+# Android signing
+keystore.properties
+*.apk
+
+# Logs
+*.log
