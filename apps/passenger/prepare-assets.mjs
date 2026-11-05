@@ -1,0 +1,37 @@
+// Regenerates apps/passenger/app/src/main/assets from the single sources of truth (protocol/ and
+// circuits/artifacts/ and fixtures/). Run from the repo root after a circuit rebuild or a protocol change:
+//   node apps/passenger/prepare-assets.mjs
+// The generated assets are committed so the APK builds without Node; the instrumented test fails if they drift
+// from the fixtures. Requires circuits/node_modules (npm ci in circuits) for snarkjs and esbuild.
+import { execFileSync } from "node:child_process";
+import { copyFileSync, mkdirSync } from "node:fs";
+
+const WWW = "apps/passenger/app/src/main/assets/www";
+const ASSETS = "apps/passenger/app/src/main/assets";
+mkdirSync(WWW, { recursive: true });
+
+// 1. Bundle protocol/ for the browser (IIFE, global `unlinkProtocol`).
+execFileSync(
+  "npx",
+  [
+    "esbuild",
+    "protocol/src/index.ts",
+    "--bundle",
+    "--format=iife",
+    "--global-name=unlinkProtocol",
+    "--platform=browser",
+    `--outfile=${WWW}/protocol.js`,
+  ],
+  { stdio: "inherit", shell: true },
+);
+
+// 2. snarkjs browser build + the committed circuit artifacts.
+copyFileSync("circuits/node_modules/snarkjs/build/snarkjs.min.js", `${WWW}/snarkjs.min.js`);
+for (const f of ["pass.wasm", "pass_final.zkey", "verification_key.json"]) {
+  copyFileSync(`circuits/artifacts/${f}`, `${WWW}/${f}`);
+}
+
+// 3. Shared fixtures for the instrumented test.
+copyFileSync("fixtures/vectors.json", `${ASSETS}/vectors.json`);
+
+console.log(`assets prepared in ${WWW} and ${ASSETS}/vectors.json`);

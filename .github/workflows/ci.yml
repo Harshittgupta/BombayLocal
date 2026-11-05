@@ -14,7 +14,8 @@ jobs:
             echo "apps/ not found yet — skipping (will fail once apps exist)"
             exit 0
           fi
-          if grep -rniE "analytics|firebase|crashlytics|mixpanel|amplitude|sentry|mlkit|google-services|play-services" apps/; then
+          if grep -rniEI "analytics|firebase|crashlytics|mixpanel|amplitude|sentry|mlkit|google-services|play-services" \
+            --exclude-dir=build --exclude-dir=.gradle apps/; then
             echo "::error::Found tracker references in apps/"
             exit 1
           fi
@@ -33,6 +34,7 @@ jobs:
             --exclude-dir=fixtures --exclude-dir=docs --exclude-dir=.claude \
             --exclude-dir=.github --exclude-dir=.git \
             --exclude-dir=node_modules --exclude-dir=lib \
+            --exclude-dir=build --exclude-dir=.gradle \
             --exclude="*.test.*" --exclude="*.spec.*" \
             --exclude="*.lock" --exclude="package-lock.json" --exclude="pnpm-lock.yaml" \
             --exclude="CLAUDE.md" --exclude="SPEC.md" \

@@ -47,3 +47,12 @@ Numbers: 5,697 constraints; laptop prove 957 ms median, verify 24 ms (i5-8350U).
 Decisions: Hermez ptau power 13, one demo-grade contribution; .gitattributes keeps artifacts byte-identical; CI job "Circuit artifacts match source" recompiles and zkey-verifies on every push.
 Open issues: signed-root signature vector for fixtures (M5/M8a); npm audit `ws` via @zk-kit/utils (unused code); README Quickstart still a skeleton (M11).
 Next: module-3 (mobile ZK spike) — /model sonnet, /effort high. Needs Android Studio + SDK/NDK on Windows, a phone with USB debugging (`adb devices`); Rust only if mopro.
+
+## module-3 · mobile-zk-spike · 2026-11-06 01:30 · (pre-review)
+DECISION: Option B (snarkjs + protocol/ bundle in an Android WebView). Option A (mopro) NOT used: needs Rust+NDK (absent, Windows-undocumented) and still needs a WebView for Poseidon hashing. Both prove+verify on-device; B reuses protocol/ JS so hashing parity holds by construction (invariant 5).
+GATE PASSED: real Groth16 proof generated AND verified on the physical phone (Nothing A142, Android 16). publicSignals == fixture case 0; ProtocolEngine poseidon1/2/3 + merkleProof == fixtures. 2/2 instrumented tests green.
+Exists: apps/passenger/ (AGP 8.13.2, Gradle 8.14.4, Kotlin 2.4.21, compose-bom 2024.09.03, compileSdk 36/minSdk 28/targetSdk 36, applicationId xyz.unlink.passenger). WebAppEngine (one WebView + JS bridge, offline via WebViewAssetLoader, no INTERNET permission), ProverService.prove/verify, ProtocolEngine.poseidon/merkleProof, MainActivity demo, Spike.runProveSelfTest. assets/www/ = protocol.js (esbuild) + snarkjs.min.js + pass.wasm + pass_final.zkey + verification_key.json; assets/vectors.json for tests. Regenerate with `node apps/passenger/prepare-assets.mjs`.
+Numbers: cold on-device prove 3,653 ms (incl. init + zkey load); verify on-device true. SPEC §10 updated.
+Build: set JAVA_HOME to the JDK root (not .../bin); `./gradlew :app:assembleDebug`; `:app:connectedDebugAndroidTest` with a phone attached. gradle in C:\Users\crevadek\tools\gradle-8.14.4 (wrapper downloads it). local.properties (gitignored) has sdk.dir.
+Open issues: proving >3s cold — mitigate with pre-proving (PREPROVE) so lock-screen is instant (M7); measure a warm proof in M7; snarkjs single-thread used (workers untested). AGP 8.x pins compose to 2024.09; bump to AGP 9.x later if needed.
+Next: module-4 (Registry contract) — /model sonnet, /effort medium. Needs Foundry; wallets funded on Sepolia; Etherscan key (all in .env).

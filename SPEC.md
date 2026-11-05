@@ -300,7 +300,7 @@ Shared screenshots are **not** revocable. Audit can count duplicates but cannot 
 |---|---|---|---|
 | Constraint count | < 20k | 5,697 (non-linear, 0 linear; 5 public, 24 private inputs, 0 outputs) | circom 2.2.3 `--O2` / 2026-11-05 |
 | Proving time, laptop (snarkjs 0.7.6, Node) | reference only | 957 ms median of 5 warm runs (920–994); verify 24 ms | Intel i5-8350U ×8, Node 22.13.1, Windows / 2026-11-05 |
-| Proving time, mid-range Android | < 3 s | — | — |
+| Proving time, mid-range Android | < 3 s | 3,653 ms (cold first proof: WebView+snarkjs init + 3.3 MB zkey load + prove, single-thread). Warm/pre-proved proofs expected lower; lock-screen shows pre-generated proofs so this isn't on the scan path | Nothing Phone A142 (Android 16, arm64, 7.6 GB), snarkjs 0.7.6 in WebView / 2026-11-06 |
 | Verify latency (steps 1–10) | < 1 s | — | — |
 | QR version at level M | ≤ 20 (computed: 16) | — | — |
 | `postRoot` gas | small | — | — |
