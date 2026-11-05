@@ -2,6 +2,7 @@
 // rule R1) and records their hashes. The verification-key hash is what the scanner APK and audit page pin.
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import * as snarkjs from "snarkjs";
 
 const FILES: Record<string, string> = {
@@ -22,7 +23,7 @@ const vk = JSON.parse(readFileSync("artifacts/verification_key.json", "utf8"));
 const r1cs = await snarkjs.r1cs.info("build/pass.r1cs");
 const manifest = {
   circuit: "pass.circom",
-  circom: "2.2.3",
+  circom: execFileSync("circom", ["--version"], { encoding: "utf8", shell: true }).trim().replace(/^circom compiler /, ""),
   snarkjs: "0.7.6",
   ptau: "powersOfTau28_hez_final_13.ptau",
   trustedSetup: "demo-grade: one phase-2 contribution",

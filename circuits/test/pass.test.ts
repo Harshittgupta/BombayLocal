@@ -12,16 +12,20 @@ import {
   idCommitment,
   merkleProof,
   nullifier,
+  passLeaf,
+  buildCircuitInput,
 } from "@unlink/protocol";
 import {
   EPOCH_NOW,
   MANIFEST,
   TODAY,
   VK,
+  WIRE,
   expectCannotProve,
   inputFor,
   passes,
   prove,
+  proveTamperedWitness,
   secretOf,
   treeOf,
   verify,
@@ -94,11 +98,90 @@ describe("validity (SPEC §4)", () => {
   });
 });
 
-describe("hardening (SPEC v0.3 §4 constraints 2 and 3)", () => {
+describe("R1CS-level: prove from a tampered witness, bypassing the witness generator's asserts", () => {
+  it("control: an untampered witness through the same path verifies (so the cases below fail for the right reason)", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 3), () => {});
+    expect(r.valid).toBe(true);
+  });
+
+  it("constraint 4: nullifier + 1 is rejected", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 3), (w) => (w[WIRE.nullifier] += 1n));
+    expect(r.valid).toBe(false);
+  });
+
+  it("constraint 4: epochId + 1 with the old nullifier is rejected", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 3), (w) => (w[WIRE.epochId] += 1n));
+    expect(r.valid).toBe(false);
+  });
+
+  it("constraint 3: a different root is rejected", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 3), (w) => (w[WIRE.root] = treeOf(passes(9)).root));
+    expect(r.valid).toBe(false);
+  });
+
+  it("constraint 5: claiming a currentDay after validUntilDay is rejected", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 0), (w) => (w[WIRE.currentDay] = BigInt(PS[0].validUntilDay + 1)));
+    expect(r.valid).toBe(false);
+  });
+
+  it("constraint 1/6: a different zoneClass is rejected", async () => {
+    const r = await proveTamperedWitness(inputFor(PS, 1), (w) => (w[WIRE.zoneClass] = 2n));
+    expect(r.valid).toBe(false);
+  });
+});
+
+describe("hardening (SPEC v0.3 §4 constraints 2, 3 and 5)", () => {
+  it("2 + nullifier: correct secret with nullifier + 1, or epochId + 1 with the old nullifier, cannot prove", async () => {
+    const input = inputFor(PS, 3);
+    await expectCannotProve({ ...input, nullifier: (BigInt(input.nullifier) + 1n).toString() });
+    await expectCannotProve({ ...input, epochId: String(EPOCH_NOW + 1) });
+  });
+
   it("depth > MAX_DEPTH against root 0 cannot prove (template would output 0)", async () => {
     const input = inputFor(PS, 3);
     await expectCannotProve({ ...input, root: "0", depth: String(MAX_DEPTH + 1) });
     await expectCannotProve({ ...input, root: "0", depth: "31" });
+    await expectCannotProve({ ...input, root: "0", depth: (FIELD_R - 1n).toString() });
+  });
+
+  it("depth = MAX_DEPTH (20) is accepted: a full-depth path built from synthetic siblings proves", async () => {
+    const secret = secretOf(77);
+    const leaf = passLeaf(idCommitment(secret), TODAY + 3, 2);
+    const siblings = Array.from({ length: MAX_DEPTH }, (_, i) => hash1(BigInt(i + 1)));
+    const pathIndex = 0b1011_0010_1110_0101_1001; // 20 bits, both directions at many levels
+    let node = leaf;
+    for (let i = 0; i < MAX_DEPTH; i++) node = (pathIndex >> i) & 1 ? hash2(siblings[i], node) : hash2(node, siblings[i]);
+    const input = buildCircuitInput({
+      secret,
+      validUntilDay: TODAY + 3,
+      zoneClass: 2,
+      proof: { root: node, leaf, depth: MAX_DEPTH, pathIndex, siblings },
+      epochId: EPOCH_NOW,
+    });
+    const { proof, publicSignals } = await prove(input);
+    expect(await verify(publicSignals, proof)).toBe(true);
+  });
+
+  it("day values >= 2^16 cannot prove (Num2Bits(16) guards LessEqThan(16))", async () => {
+    const secret = secretOf(55);
+    const bigDay = 65_536 + TODAY;
+    const tree = buildTree([hash3(idCommitment(secret), BigInt(bigDay), 0n), hash1(9n)]);
+    const p = merkleProof(tree, 0);
+    const base = {
+      root: tree.root.toString(),
+      nullifier: nullifier(secret, EPOCH_NOW).toString(),
+      epochId: String(EPOCH_NOW),
+      currentDay: String(dayOfEpoch(EPOCH_NOW)),
+      zoneClass: "0",
+      secret: secret.toString(),
+      validUntilDay: String(bigDay),
+      depth: String(p.depth),
+      pathIndex: String(p.pathIndex),
+      siblings: p.siblings.map(String),
+    };
+    await expectCannotProve(base);
+    const valid = inputFor(PS, 3);
+    await expectCannotProve({ ...valid, currentDay: String(65_536 + Number(valid.currentDay)) });
   });
 
   it("pathIndex >= 2^MAX_DEPTH cannot prove (Num2Bits inside BinaryMerkleRoot)", async () => {

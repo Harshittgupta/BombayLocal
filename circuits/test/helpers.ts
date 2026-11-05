@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import * as snarkjs from "snarkjs";
 import {
   EPOCH,
+  FIELD_R,
   buildCircuitInput,
   buildTree,
   day,
@@ -31,16 +32,66 @@ export async function verify(publicSignals: string[], proof: snarkjs.Groth16Proo
   return snarkjs.groth16.verify(VK, publicSignals, proof);
 }
 
-/** Witness generation enforces every === constraint, so an unsatisfiable statement cannot be proven at all. */
+/**
+ * The circom witness generator asserts every === constraint, so an unsatisfiable statement can't even produce a
+ * witness. Only an "Assert Failed" error counts: a missing file or a misspelt signal name must not pass as a
+ * rejection. This checks the wasm; `proveTamperedWitness` below checks the R1CS itself.
+ */
 export async function expectCannotProve(input: Record<string, unknown>): Promise<void> {
-  let proved = false;
+  let error: unknown;
   try {
     await prove(input);
-    proved = true;
-  } catch {
-    // expected: "Assert Failed" or a Num2Bits/range failure during witness calculation
+  } catch (e) {
+    error = e;
   }
-  if (proved) throw new Error("statement was provable but must not be");
+  if (error === undefined) throw new Error("statement was provable but must not be");
+  if (!String((error as Error)?.message ?? error).includes("Assert Failed")) throw error;
+}
+
+/**
+ * Witness layout (snarkjs, 0 outputs): [1, root, nullifier, epochId, currentDay, zoneClass, secret, validUntilDay,
+ * depth, pathIndex, siblings[0..19], internal wires...].
+ */
+export const WIRE = { root: 1, nullifier: 2, epochId: 3, currentDay: 4, zoneClass: 5, secret: 6 } as const;
+
+/** Encodes a witness in snarkjs .wtns format v2 (section 1: n8, prime, count; section 2: values, 32-byte LE). */
+function encodeWtns(witness: bigint[]): Uint8Array {
+  const n8 = 32;
+  const le = (x: bigint) => {
+    const b = new Uint8Array(n8);
+    for (let i = 0; i < n8; i++) b[i] = Number((x >> BigInt(8 * i)) & 0xffn);
+    return b;
+  };
+  const header = 12 + 12 + (4 + n8 + 4) + 12;
+  const buf = new Uint8Array(header + n8 * witness.length);
+  const dv = new DataView(buf.buffer);
+  buf.set(new TextEncoder().encode("wtns"), 0);
+  dv.setUint32(4, 2, true); // version
+  dv.setUint32(8, 2, true); // sections
+  dv.setUint32(12, 1, true); // section 1: header
+  dv.setBigUint64(16, BigInt(4 + n8 + 4), true);
+  dv.setUint32(24, n8, true);
+  buf.set(le(FIELD_R), 28);
+  dv.setUint32(28 + n8, witness.length, true);
+  const s2 = 28 + n8 + 4;
+  dv.setUint32(s2, 2, true); // section 2: witness values
+  dv.setBigUint64(s2 + 4, BigInt(n8 * witness.length), true);
+  witness.forEach((w, i) => buf.set(le(((w % FIELD_R) + FIELD_R) % FIELD_R), s2 + 12 + i * n8));
+  return buf;
+}
+
+/**
+ * R1CS-level negative test: compute a valid witness, change it, and prove from the changed witness directly
+ * (bypassing the witness generator's asserts). If the R1CS still constrains what was changed, the resulting
+ * proof cannot verify.
+ */
+export async function proveTamperedWitness(input: Record<string, unknown>, mutate: (w: bigint[]) => void) {
+  const mem = { type: "mem" } as { type: "mem"; data?: Uint8Array };
+  await snarkjs.wtns.calculate(input, WASM, mem);
+  const witness = (await snarkjs.wtns.exportJson(mem)).map((x) => BigInt(x));
+  mutate(witness);
+  const { proof, publicSignals } = await snarkjs.groth16.prove(ZKEY, { type: "mem", data: encodeWtns(witness) });
+  return { proof, publicSignals, valid: await verify(publicSignals, proof) };
 }
 
 /** Deterministic secret i (nonzero, < 2^248). */

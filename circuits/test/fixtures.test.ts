@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   FIELD_R,
+  buildCircuitInput,
   buildTree,
   day,
   dayOfEpoch,
@@ -58,6 +59,9 @@ describe("fixtures/vectors.json", () => {
       expect(dayOfEpoch(c.epochId)).toBe(c.currentDay);
       expect(nullifier(secret, c.epochId).toString()).toBe(c.nullifier);
       expect(c.publicSignals).toEqual([c.root, c.nullifier, String(c.epochId), String(c.currentDay), String(c.zoneClass)]);
+      expect(c.circuitInput).toEqual(
+        buildCircuitInput({ secret, validUntilDay: c.validUntilDay, zoneClass: c.zoneClass, proof: p, epochId: c.epochId }),
+      );
       expect(await verify(c.publicSignals, c.proof)).toBe(true);
     });
   }

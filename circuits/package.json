@@ -10,15 +10,16 @@
     "compile": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && circom pass.circom --r1cs --wasm --sym --O2 -l node_modules/circomlib/circuits -l node_modules/@zk-kit/binary-merkle-root.circom/src -o build",
     "info": "snarkjs r1cs info build/pass.r1cs",
     "ptau": "tsx scripts/fetch-ptau.ts",
-    "setup": "snarkjs groth16 setup build/pass.r1cs ptau/powersOfTau28_hez_final_13.ptau build/pass_0000.zkey",
+    "setup": "npm run ptau && snarkjs groth16 setup build/pass.r1cs ptau/powersOfTau28_hez_final_13.ptau build/pass_0000.zkey",
     "contribute": "tsx scripts/contribute.ts",
     "vkey": "snarkjs zkey export verificationkey build/pass_final.zkey build/verification_key.json",
     "artifacts": "tsx scripts/copy-artifacts.ts",
-    "build": "npm run compile && npm run info && npm run ptau && npm run setup && npm run contribute && npm run vkey && npm run artifacts",
+    "build": "npm run compile && npm run info && npm run setup && npm run contribute && npm run vkey && npm run artifacts",
     "prove-sample": "tsx scripts/prove-sample.ts",
     "typecheck": "tsc --noEmit -p .",
     "bench": "tsx scripts/bench.ts",
-    "fixtures": "tsx scripts/make-fixtures.ts"
+    "fixtures": "tsx scripts/make-fixtures.ts",
+    "verify-artifacts": "tsx scripts/verify-artifacts.ts"
   },
   "dependencies": {
     "@zk-kit/binary-merkle-root.circom": "2.0.0",

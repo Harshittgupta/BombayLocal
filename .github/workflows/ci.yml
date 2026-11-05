@@ -68,3 +68,27 @@ jobs:
           npm ci
           npm run typecheck
           npm test
+
+  circuit-provenance:
+    name: Circuit artifacts match source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Install circom 2.2.3 (official binary, sha256-pinned)
+        run: |
+          mkdir -p "$HOME/bin"
+          curl -sSL -o "$HOME/bin/circom" https://github.com/iden3/circom/releases/download/v2.2.3/circom-linux-amd64
+          echo "85342c7ff332d948df7c0c50ecf201e6129349aef550ce873f3c811b79fe53a3  $HOME/bin/circom" | sha256sum -c -
+          chmod +x "$HOME/bin/circom"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - name: Compile pass.circom, fetch hash-checked ptau, verify committed zkey / vk / hashes
+        working-directory: circuits
+        run: |
+          circom --version
+          npm ci
+          npm run compile
+          npm run ptau
+          npm run verify-artifacts
