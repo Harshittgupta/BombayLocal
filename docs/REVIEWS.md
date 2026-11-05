@@ -24,6 +24,24 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-5 · issuer (issuer/ service, real postRoot on Sepolia)
+Commit: 968eab2, 676b98f (build) + 296f1db (review fixes)  (pushed: yes; CI green on all 7 jobs)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on bf06c90..676b98f
+Findings:
+- [MAJOR] Fastify default request logging emitted the client IP per POST /purchase (invariant 1 leak) → FIXED: disableRequestLogging
+- [MAJOR] publishing order wrong — posted root before any Arkiv write (SPEC §3.1 window) → FIXED: split ArkivPublisher into publishLeavesAndRevocations (before postRoot) + publishSignedRoot (after sign)
+- [MAJOR] no assert that the signing wallet == deployment.issuer (scanners would reject every root) → FIXED: assert in publisher
+- [MAJOR] no pinned §3.3 signature vector for the Kotlin scanner to cross-check → FIXED: fixtures/sign-vectors.json (signed-root + scan-batch, test key); tests cross-check rootDigest vs an independent 134-byte packed encoding and vs the committed vector; SPEC §3.3/§5 document the digests
+- [MINOR] zero-root (empty tree) not guarded → FIXED: publisher refuses root 0
+Confirmed correct by reviewer: §3.3 digest widths (134 B) + EIP-191 \n32 (not \n66), ethers low-s/v∈{27,28}; purchase idCommitment<r, validUntilDay, zoneClass-from-product; revocation→0; DB holds nothing personal; only purchase simulated; postRoot is a real Sepolia tx; node:sqlite is a real DB; scan allowlist + sig check sound.
+Not fixed (deliberate): [MINOR] purchases.createdAt timing (issuer-internal); [MINOR] heartbeat / zeroing expired batches / idempotent writes (M6 + ops); [NIT] timing-safe admin-token compare (demo); Arkiv read-back is M6 by design.
+For M8: the scanner must sign the ascending-sorted nullifier array (scanBatchDigest), and reproduce the §3.3 signed-root digest — both pinned in fixtures/sign-vectors.json.
+Fixed in: 296f1db
+Real root posted by the service: rootId 2, Sepolia tx 0x2a9b…f73d (warm postRoot 57,651 gas).
+
+Rule check: see below
+Blockers: none
+
 ### 2026-11-06 · module-4 · registry (Registry.sol on Sepolia)
 Commit: f6005ab (build, deploy, verify, tests, CI)  (pushed: yes; CI green on all 6 jobs)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on afefde1..f6005ab
