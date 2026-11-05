@@ -24,6 +24,23 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-3 · mobile-zk-spike (apps/passenger, on-device Groth16)
+Commit: afefde1 (spike), 69838f7 (review fix)  (pushed: yes)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on 18fe7e8..afefde1
+Gate: REAL Groth16 proof generated AND verified on the physical phone (Nothing A142, Android 16); publicSignals == fixture case 0; ProtocolEngine poseidon1/2/3 + merkleProof == fixtures; 2/2 instrumented tests; cold prove 3,653 ms. Verdict: SOUND (real, verified on-device, no mocks).
+Decision: Option B (snarkjs + protocol/ bundle in a WebView). Not mopro (needs Rust+NDK, Windows-undocumented, and still needs a WebView for hashing).
+Findings:
+- [MAJOR] invariant-5 parity was hand-enforced: no CI job kept apps/passenger assets in sync with protocol/src, circuits/artifacts, fixtures; instrumented tests (the only drift check) don't run in CI (no device) → FIXED: pinned esbuild 0.28.2, prepare-assets uses it, new CI job "passenger-assets" regenerates and `git diff --exit-code`s the assets
+- [MINOR] new WebView per self-test tap (leak) → deferred to M7 (real UI)
+- [MINOR] no timeout on call()/create(); a failed JS load hangs the coroutine → deferred to M7
+- [MINOR] secret transits as a stringified evaluateJavascript arg; JS error path returns a stack → deferred to M7 (secret never leaves device or is logged today; M7 must scrub errors + move secret off the stringified channel, invariant 2)
+Confirmed REAL by reviewer: prove = snarkjs.groth16.fullProve with committed wasm/zkey on device; verify = snarkjs.groth16.verify vs bundled vk; test asserts both verified AND publicSignalsMatch; no fake chain, no server proving, no hardcoded result; no INTERNET permission, assets served locally fail-closed.
+Fixed in: 69838f7
+Still open (for M7): WebView reuse, timeouts, secret-in-error-path hardening; measure a warm/pre-proved proof (cold is 3.65 s > 3 s target; lock-screen uses pre-generated proofs so it's off the scan path).
+
+Rule check: see below
+Blockers: none
+
 ### 2026-11-05 · module-2 · circuit (2a protocol + circuit + setup, 2b tests + fixtures)
 Commit: dba0471 (2a), 29d5081 (2b), 045a232 (review fixes)  (pushed: yes; CI green on all 4 jobs)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on 371e89c..29d5081; focus: under-constrained signals, Num2Bits aliasing, path-bit booleanity, depth bound, secret < 2^248
