@@ -70,3 +70,11 @@ Numbers: real Sepolia postRoot gas 351,411 (SPEC §10). Sepolia is on Pectra; lo
 Commands: cd contracts && forge test -vv. Build with foundry on PATH ($HOME/.foundry/bin, forge 1.7.1).
 Open issues: USE publicnode RPC (SEPOLIA_RPC_URL_BACKUP) — Alchemy key under-estimates creation gas and OOGs; regenerate it. _issuers array unbounded (demo-fine).
 Next: module-5 (issuer service) — /model sonnet, /effort medium. TypeScript/Fastify, uses deployments.json + protocol/ + ethers; posts roots via Registry.postRoot on publicnode RPC. Needs Node (have it).
+
+## module-5 · issuer · 2026-11-06 03:20 · commits 968eab2, 296f1db
+Exists: issuer/ (TypeScript, Fastify 5, ethers 6, pino 10, node:sqlite). SPEC v0.3. 9 vitest tests (incl. a real circuit proof of a purchased leaf). Posted a real root: rootId 2, Sepolia tx 0x2a9b…f73d (warm postRoot 57,651 gas, SPEC §10).
+Paths: src/{config,db,purchase,sign,registry,tree,arkiv,publisher,scan,server,logger,cli-publish}.ts. products.json. scanners.json (allowlist, optional). fixtures/sign-vectors.json (shared §3.3 + §5 vectors, test key).
+Interfaces: HTTP POST /purchase {idCommitment,product}->{leafIndex,validUntilDay,zoneClass}; /admin/revoke {leafIndex} + /admin/publish-root (x-admin-token); /scan-batches {scannerPubKey,epochId,nullifiers[],sig}->{stored,duplicates}. ArkivPublisher = {publishLeavesAndRevocations(newLeaves,revocations), publishSignedRoot(signedRoot)} — M6 implements. publishRoot() orchestrates SPEC §3.1 order. rootDigest/signRoot/recoverRootSigner (§3.3); scanBatchDigest (§5).
+Decisions: node:sqlite (built-in) instead of better-sqlite3 (its prebuilt binary segfaults on this Node/ABI) — real SQLite, no native build. Default RPC = publicnode (Alchemy OOGs). disableRequestLogging (no client IP in logs).
+Open issues (for M6/ops): heartbeat (6h), zero expired batches, idempotent Arkiv writes; these land with the real Arkiv writer.
+Next: module-6 (Arkiv data layer) — /model sonnet, /effort high. Implements ArkivPublisher against Rabdi testnet (@arkiv-network/sdk), round-trip rebuild == signed root. Needs the issuer wallet funded on Arkiv (ARKIV_RPC_URL/CHAIN_ID in .env); docs-researcher first (docs/notes/arkiv.md).

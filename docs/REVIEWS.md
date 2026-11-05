@@ -39,7 +39,17 @@ For M8: the scanner must sign the ascending-sorted nullifier array (scanBatchDig
 Fixed in: 296f1db
 Real root posted by the service: rootId 2, Sepolia tx 0x2a9b…f73d (warm postRoot 57,651 gas).
 
-Rule check: see below
+Rule check (rule-checker subagent, Sonnet; verified the postRoot tx on-chain):
+- R1 auditable repo ............ PASS  (.env + *.db ignored & untracked; exact pins + lockfiles; circuits/artifacts committed; node:sqlite built-in, Node pinned)
+- R2 commits proper + same day . PASS  (module-5 commits 2026-11-06, pushed, small)
+- R3 this review logged ........ PASS  (968eab2, 296f1db resolve)
+- R4 two separate apps ......... N/A yet  (scanner is M8)
+- R5.2 postRoot on-chain ....... PASS  (receipt 0x2a9b…f73d status 0x1 to the registry; registry.ts/publisher.ts call Registry.postRoot via ethers)
+- R5.7 mock audit ............. PASS  (only issuer/src/purchase.ts; node:sqlite is a real DB)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariant 1 privacy ......... PASS  (redact paths + disableRequestLogging; no commitment/leaf/index/nullifier in any log line)
+- Invariant 7 honest claims ... PASS
+- CI (7 jobs) ................. PASS  (green on aa8e74e)
 Blockers: none
 
 ### 2026-11-06 · module-4 · registry (Registry.sol on Sepolia)
