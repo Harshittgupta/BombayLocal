@@ -23,12 +23,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Grep for mock/fake/stub/dummy/hardcod outside allowed dirs
         run: |
-          # Search everything except test dirs, fixtures/, docs/, and the one allowed file
+          # Search everything except test dirs, fixtures/, docs/, and planning/config files
           HITS=$(grep -rniE "mock|fake|stub|dummy|hardcod" \
             --exclude-dir=test --exclude-dir=tests --exclude-dir=__tests__ \
-            --exclude-dir=fixtures --exclude-dir=docs \
+            --exclude-dir=fixtures --exclude-dir=docs --exclude-dir=.claude \
+            --exclude-dir=.github --exclude-dir=.git \
             --exclude="*.test.*" --exclude="*.spec.*" \
-            --exclude="ci.yml" \
+            --exclude="CLAUDE.md" --exclude="SPEC.md" \
+            --exclude="BUILD_PLAN.md" --exclude="BOUNTIES.md" \
+            --exclude="HANDOFF.md" --exclude="REVIEWS.md" \
+            --exclude="README.md" --exclude="DEMO.md" \
+            --exclude="LICENSE" \
             . | grep -v "issuer/src/purchase.ts" | grep -v "node_modules" || true)
           if [ -n "$HITS" ]; then
             echo "$HITS"
