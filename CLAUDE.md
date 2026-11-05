@@ -44,27 +44,28 @@ Load these files on demand only; don't read them all every session:
 6. **No under-constrained signals.** Use `<==` or `===`, never `<--` alone. Range checks on day values. Keep under 20k constraints.
 7. **Honest claims.** State limitations before judges find them: per-scanner duplicate detection, demo-grade trusted setup, EOA authority.
 
-## Core protocol (summary of SPEC.md v0.2)
+## Core protocol (summary of SPEC.md v0.3)
 
-- `idCommitment = Poseidon1(secret)` is computed on the phone; the secret never leaves it. The **issuer** builds `leaf = Poseidon3(idCommitment, validUntilDay, zoneClass)` from the paid product.
-- The tree is a Poseidon LeanIMT with MAX_DEPTH 20. Leaves and revocations are published to **Arkiv**. **The phone rebuilds the tree and computes its own path**, and checks it against the signed root from Arkiv. The issuer is contacted only at purchase.
+- `idCommitment = Poseidon1(secret)` is computed on the phone; the secret never leaves it. The **issuer** builds `leaf = Poseidon3(idCommitment, validUntilDay, zoneClass)` from the paid product. `zoneClass ∈ {0,1,2}`.
+- The tree is a Poseidon LeanIMT with MAX_DEPTH 20. Leaves (`LeafBatch`) and revocations (`Revocation`, with `seq`) are published to **Arkiv**. **The phone rebuilds the tree and computes its own path** from `leafCount` and `revSeq` on the `SignedRoot`, checks the signature, and confirms the root with one `Registry.rootInfo(rootId)` call. Expired batches are zeroed, so Arkiv expiry never breaks the rebuild. Readers filter on `$creator` = `$owner` = issuer. The issuer is contacted only at purchase.
+- Circuit private inputs: `secret, validUntilDay, depth, pathIndex, siblings[20]`. `pathIndex` is LeanIMT's compressed `proof.index`, not the leaf index; `depth = proof.siblings.length` and is constrained ≤ 20.
 - `nullifier = Poseidon2(secret, epochId)`. EPOCH is 600 s. Adjacent epochs are accepted only within 120 s of the boundary.
 - Public inputs, in order: `root, nullifier, epochId, currentDay, zoneClass`.
-- Signed root: `{issuer, rootId, root, issuedAt, expiresAt, sig}`, EIP-191 signed, ROOT_TTL 36 h. `rootId` is a global counter in the Registry.
-- QR: 427 B, Base45, 641 chars. Byte layout in SPEC §3.4.
-- Scanner steps are in SPEC §5. Results are Green, Amber or Red with a reason.
+- Signed root: `{issuer, rootId, root, issuedAt, expiresAt, sig}`, EIP-191 over a 32-byte digest (encoding pinned in SPEC §3.3). `issuedAt` = on-chain `postedAt`, `expiresAt = issuedAt + 36 h` exactly. `rootId` is a global counter; the **floor is per issuer**.
+- QR: 427 B, Base45, 641 chars, alphanumeric mode, version 16-M. Byte layout in SPEC §3.4. The scanner rejects non-canonical (≥ r) `root`/`nullifier`.
+- Scanner steps are in SPEC §5. Results are Green, Amber or Red with a reason. Debounce only while the code stays in view (gap < 1 s).
 
 ## Interfaces (keep stable)
 
-- **Registry**:
-  - `addIssuer(address)`, `suspendIssuer(address)` (authority only).
-  - `postRoot(bytes32) returns (uint64 rootId)` (active issuer; global counter).
-  - `setMinRootId(uint64)` (authority only; never decreases).
-  - Views: `isActive`, `latestRoot(address)`, `floor()`. Events on every change.
+- **Registry** (constructor `(address authority, uint64 minRootInterval)`):
+  - `addIssuer(address)` (re-adding sets `floor[issuer] = rootCount() + 1`), `suspendIssuer(address)` (authority only).
+  - `postRoot(bytes32 root) returns (uint64 rootId)` (active issuer; `root != 0`; global counter; `minRootInterval` enforced unless the issuer's latest root is below its floor). Stores `latestRoot[issuer]` and `rootInfo[rootId]`.
+  - `setMinRootId(address issuer, uint64 newFloor)` (authority only; `floor[issuer] < newFloor ≤ rootCount() + 1`).
+  - Views: `isActive(address)`, `latestRoot(address) → (root, rootId, postedAt)`, `rootInfo(uint64) → (issuer, root, postedAt)`, `floor(address)`, `rootCount()`. Events on every change.
 - **Issuer HTTP**: `POST /purchase {idCommitment, product}` → `{leafIndex, validUntilDay, zoneClass}`. `POST /scan-batches`. `POST /admin/revoke`. `POST /admin/publish-root`. No refresh endpoint.
 - **Arkiv**:
   - Writer: `publishRoot`, `publishLeafBatch`, `publishRevocation`, `publishScannerList`, `publishVk`.
-  - Reader: latest signed root per issuer, plus leaf batches and revocations.
+  - Reader: latest signed root per issuer, plus leaf batches and revocations, always filtered on `$creator` = `$owner` = issuer.
 - **Passenger**: `ProverService`, `KeystoreSecretStore`, `PassRepository`, `RefreshWorker`, `EpochScheduler`.
 - **Scanner**: `OfflineVerifier.verify(qrText, now) → Result(Green|Amber|Red, reason)`, `LocalStore`, `SyncWorker`.
 

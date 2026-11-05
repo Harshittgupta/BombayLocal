@@ -1,7 +1,9 @@
-# Unlink — Specification v0.2
+# Unlink — Specification v0.3
 
 Status: **frozen for build** (change only with a note in `docs/REVIEWS.md`).
-All numbers in **bold** are parameters (see §9). Integers are big-endian. Field = BN254 scalar field. Hash = Poseidon (circomlib parameters) unless stated.
+All numbers in **bold** are parameters (see §9). Integers are big-endian, fixed width. Field = BN254 scalar field, modulus `r`. Hash = Poseidon (circomlib parameters) unless stated.
+
+**v0.3 changes (Module 1 hostile review, see `docs/REVIEWS.md`):** circuit takes a single `pathIndex` and range-checks `depth` and `zoneClass`; scanner rejects non-canonical field values and enforces the exact root TTL; the phone checks the signed root against the Registry; per-issuer floor; signed-root encoding pinned; Arkiv tree rebuild made deterministic (`leafCount`, `revSeq`, expired batches zeroed); Arkiv reads filter on `$creator`/`$owner`; Arkiv expiry is in blocks; debounce only while the code stays in view; threat model corrected (anonymity set, lost phone, epoch boundary).
 
 **Project rules** (full version with checks in `CLAUDE.md`):
 - **R1** Auditable public repo.
@@ -14,13 +16,13 @@ All numbers in **bold** are parameters (see §9). Integers are big-endian. Field
 **Choices made in this spec** (each can be reopened, but only deliberately):
 1. One secret per pass, generated on the phone; the issuer only ever sees the leaf commitment.
 2. 10-minute epochs. Adjacent-epoch proofs are accepted only within 120 s of the boundary, not a full ±1 epoch.
-3. Pass expiry and fare class are checked **inside the circuit**. Expiry stays private; only "still valid today" is proven.
-4. `rootId` is a single **global counter** in the Registry, so one floor applies to every issuer.
-5. The passenger takes the signed root **from Arkiv, not from the issuer**. This blocks root-tagging attacks (§8).
+3. Pass expiry and fare class are checked **inside the circuit**. Expiry stays private; only "still valid today" is proven. (v0.3: `zoneClass` is also constrained to {0, 1, 2}.)
+4. **Changed in v0.3.** `rootId` is still a single **global counter** in the Registry, but the **floor is per issuer** (`floor[issuer]`). A global floor took down every issuer's passes to deal with one issuer's bad roots.
+5. The passenger takes the signed root **from Arkiv, not from the issuer**, and (v0.3) accepts it only if the Registry has the same `(issuer, root, postedAt)` under that `rootId`. This blocks root-tagging attacks and makes the on-chain `ROOT_INTERVAL` binding (§8).
 6. The QR is Base45 text, not raw binary, so standard scanner libraries read it reliably.
 7. Duplicates are caught per scanner. Cross-scanner audit **measures** sharing but cannot name the pass. That is the privacy price, stated openly.
 8. **The issuer builds the leaf from the terms that were paid for** (v0.2 fix). The phone sends only `idCommitment = Poseidon1(secret)`, and the issuer computes the leaf with the `validUntilDay` and `zoneClass` the passenger paid for. Previously the phone built the whole leaf, so it could have written any expiry into it.
-9. **Leaves are public on Arkiv, and the phone computes its own Merkle path** (v0.2). The issuer publishes leaf commitments and revocations to Arkiv. The phone rebuilds the tree and checks it against the signed root. Daily refresh then needs no issuer server (CROPS *C*), never reveals the passenger's `leafIndex` or IP to the issuer (CROPS *P*), and every phone computes the same root from public data, which rules out root tagging.
+9. **Leaves are public on Arkiv, and the phone computes its own Merkle path** (v0.2). The issuer publishes leaf commitments and revocations to Arkiv. The phone rebuilds the tree and checks it against the signed root. Daily refresh then needs no issuer server (CROPS *C*), never reveals the passenger's `leafIndex` or IP to the issuer (CROPS *P*), and every phone computes the same root from public data, which rules out root tagging. (v0.3: the rebuild is made deterministic by `leafCount`/`revSeq`, and expired batches are zeroed so Arkiv expiry never breaks it.)
 
 ---
 
@@ -29,7 +31,7 @@ All numbers in **bold** are parameters (see §9). Integers are big-endian. Field
 **Goals**
 - G1: The scanner learns one bit: *valid now / not valid*. It also sees the coarse fare class, which a TC sees anyway.
 - G2: Verification runs fully offline, in under 1 s, using only data synced earlier.
-- G3: No identifier links the same passenger across epochs, scanners or days.
+- G3: No identifier links the same passenger across epochs, scanners or days. The signed root a phone carries places it in the set of phones that refreshed during the same root interval; that residual is stated in §8.
 - G4: Any operator can become an issuer through a public registry. No shared commuter database.
 - G5: Scanners keep verifying when the issuer server is down.
 
@@ -42,12 +44,12 @@ All numbers in **bold** are parameters (see §9). Integers are big-endian. Field
 
 | Actor | Holds | Trust |
 |---|---|---|
-| **Authority** | Registry admin key (EOA for demo, multisig in prod) | Adds and suspends issuers, raises the floor |
+| **Authority** | Registry admin key (EOA for demo, multisig in prod) | Adds and suspends issuers, raises an issuer's floor |
 | **Issuer** | Issuer EOA key, private DB, Merkle tree | Honest about who paid. *Not* trusted with privacy |
 | **Passenger app** | Pass secret (Keystore-wrapped), path, signed root, cached proofs | Holds the pass |
-| **TC scanner** | Local store: issuers, floor, roots, vk, nullifier log; scanner key | Honest-but-curious about passengers |
-| **Registry** | Issuer list, global `rootId`, floor, latest root per issuer | Solidity contract on Ethereum Sepolia, source verified |
-| **Arkiv** | Signed roots, leaf batches, revocations, scanner list, vk. All are owned by the writer's wallet and all expire | Public data layer. Read by the passenger app, the scanner and the audit page |
+| **TC scanner** | Local store: issuers, per-issuer floors, roots, vk, nullifier log; scanner key | Honest-but-curious about passengers |
+| **Registry** | Issuer list, global `rootId` counter, per-issuer floor, latest root per issuer, `rootInfo` per `rootId`, `minRootInterval` (immutable, set in the constructor) | Solidity contract on Ethereum Sepolia, source verified |
+| **Arkiv** | Signed roots, leaf batches, revocations, scanner list, vk. Created and owned by the issuer's wallet; all expire | Public data layer. Read by the passenger app, the scanner and the audit page |
 | **Auditor** | Nothing secret | Anyone. Uses the audit page |
 
 ## 3. Data objects
@@ -57,36 +59,62 @@ All numbers in **bold** are parameters (see §9). Integers are big-endian. Field
 secret        random 248 bits (fits in the field), generated on the phone, never leaves it
 idCommitment  = Poseidon1(secret)                                   computed on the phone
 validUntilDay uint16, last valid day, inclusive (day numbering in §9)   set by the issuer
-zoneClass     uint8, fare class (0 = 2nd, 1 = 1st, 2 = AC; others reserved)   set by the issuer
+zoneClass     uint8 in {0, 1, 2} (0 = 2nd, 1 = 1st, 2 = AC)          set by the issuer
 leaf          = Poseidon3(idCommitment, validUntilDay, zoneClass)   computed by the issuer
 ```
-The phone sends `{idCommitment, product}` to `/purchase`. The issuer sets `validUntilDay` and `zoneClass` from the product that was paid for, builds the leaf, appends it, and returns `{leafIndex, validUntilDay, zoneClass}`.
+The phone sends `{idCommitment, product}` to `/purchase`. The issuer checks `idCommitment < r`, sets `validUntilDay` and `zoneClass` from the product that was paid for, builds the leaf, appends it, and returns `{leafIndex, validUntilDay, zoneClass}`. The phone recomputes the leaf and rejects a `zoneClass` outside {0, 1, 2}.
 
 The issuer stores `purchaseId ↔ leafIndex` (it needs this for refunds and lost-phone revocation) but never the secret. Without the secret, the issuer cannot compute nullifiers.
 
-**Path from public data.** The issuer publishes every leaf to Arkiv (`LeafBatch`) and every revocation (`Revocation`). On refresh, the phone:
-1. Reads the issuer's latest signed root, its leaf batches and its revocations from Arkiv.
-2. Rebuilds the LeanIMT with revoked leaves set to 0.
-3. Checks that the computed root equals `signedRoot.root`. If not, it rejects the root and keeps the previous one.
-4. Derives its own path.
+**Arkiv entities written by the issuer** (schema in `/arkiv/schema.md`):
+- `LeafBatch {batchNo, fromIndex, count, leaves[]}`: consecutive new leaves, at most **LEAF_BATCH_MAX** per entity.
+- `Revocation {seq, fromIndex, count, reason}`: sets leaves `[fromIndex, fromIndex+count)` to 0. `seq` increases by 1 per entity. `reason` is `revoked` (one pass: refund, lost phone, fraud) or `expired` (a whole `LeafBatch` once every leaf in it has `validUntilDay < day(now)`).
+- `SignedRoot`: the §3.3 fields, plus the unsigned attributes `leafCount` (leaves the root covers) and `revSeq` (highest revocation `seq` applied). These need no signature: a wrong value makes the rebuilt root mismatch.
 
-The issuer server is contacted **only at purchase**. Leaves are hiding commitments; to an outsider they show only how many passes were sold and when. Scale note: 32 B per leaf. That is fine for the demo; at 1M passes production needs delta sync (§8, limitations).
+**Issuer publishing order:** (1) write the new `LeafBatch` and `Revocation` entities; (2) `Registry.postRoot(root)`; (3) sign the root with the on-chain `rootId` and `postedAt` (§3.3); (4) write the `SignedRoot`. At the first root after day `D + 1` begins, where `D` is a batch's latest `validUntilDay`, the issuer zeroes that batch with an `expired` revocation.
+
+**Refresh: path from public data.** The phone:
+1. Reads from Arkiv, keeping only entities whose `$creator` and `$owner` both equal the issuer address: the `SignedRoot` with the highest `rootId`, all live `LeafBatch` entities and all live `Revocation` entities. If more than one `SignedRoot` exists for that `rootId`, it keeps its current root (see §8, tagging).
+2. Verifies the signature (§3.3), then makes one `eth_call` to `Registry.rootInfo(rootId)` and requires `(issuer, root, postedAt)` to match, `issuedAt == postedAt`, `expiresAt == issuedAt + ROOT_TTL`, and `isActive(issuer)`.
+3. Rebuilds the LeanIMT over indices `[0, leafCount)`: each position takes its value from the live `LeafBatch` covering it, or 0 if none does (that batch expired and was zeroed). Overlapping batches mean rejection. It then applies every `Revocation` with `seq ≤ revSeq`.
+4. Checks that the computed root equals `signedRoot.root`. On any failure it keeps the previous root and shows "Couldn't update; your pass still works until <time>".
+5. Derives its own path with `generateProof(leafIndex)`. If its own leaf is 0, it shows "Pass revoked".
+
+The phone refreshes on app open and on unlock when online (at most once per **ROOT_INTERVAL**), plus a daily background job. Before each pre-prove batch (§6) it tries to move to the newest root, so phones converge on the same root. The issuer server is contacted **only at purchase**. Leaves are hiding commitments; to an outsider they show only how many passes were sold and when. Scale: 32 B per **live** leaf, because expired batches are zeroed and drop off Arkiv. At 1M live passes production needs delta sync (§8).
 
 ### 3.2 Merkle tree
-Poseidon LeanIMT (`@zk-kit/lean-imt`), **MAX_DEPTH = 20**, so up to 1,048,576 passes per issuer. The circuit uses zk-kit's `BinaryMerkleRoot(MAX_DEPTH)` because it has the same variable-depth rule as LeanIMT: a node with no sibling is promoted, not hashed. To revoke a pass, its leaf is set to `0`, so the other leaves keep their indices.
+Poseidon LeanIMT (`@zk-kit/lean-imt`, pinned), **MAX_DEPTH = 20**, so up to 1,048,576 passes per issuer. Internal node = `Poseidon2(left, right)`. A node with no right sibling is promoted, not hashed. A 0 leaf is an ordinary value, hashed with its sibling, so a revoked or zeroed leaf keeps the tree shape and every other index.
+
+The circuit uses zk-kit's `BinaryMerkleRoot(MAX_DEPTH)` (`@zk-kit/binary-merkle-root.circom`, pinned), which follows the same promotion rule. Its inputs come straight from LeanIMT's `generateProof`:
+- `depth = proof.siblings.length`: the number of levels that had a sibling. It can be smaller than the tree depth.
+- `pathIndex = proof.index`: a **compressed** path index with one bit per level that had a sibling. It is **not** the leaf index.
+- `siblings = proof.siblings`, padded with 0 up to 20 entries.
 
 ### 3.3 Signed root
 ```
 issuer    address (20 B)    issuer EOA, same key that calls postRoot
 rootId    uint64            global id assigned by Registry.postRoot
-root      bytes32           tree root (field element)
-issuedAt  uint32            unix seconds
-expiresAt uint32            issuedAt + ROOT_TTL
-signature 65 B              EIP-191 personal_sign over
-  keccak256(abi.encodePacked("UNLINK-ROOT-v1", chainId:uint256, registry:address,
-                             issuer, rootId, root, issuedAt, expiresAt))
+root      bytes32           tree root (field element, nonzero, < r)
+issuedAt  uint32            = Registry postedAt (block.timestamp of the postRoot tx)
+expiresAt uint32            = issuedAt + ROOT_TTL, exactly
+signature 65 B              r ‖ s ‖ v, v ∈ {27, 28}, s ≤ secp256k1n/2
 ```
-The issuer posts the root on-chain first, then signs it using the returned `rootId`, then publishes it to Arkiv.
+**Encoding (pinned; a shared vector lives in `fixtures/vectors.json`):**
+```
+digest = keccak256(abi.encodePacked(
+           "UNLINK-ROOT-v1",            // 14 ASCII bytes, no length prefix
+           chainId   uint256 (32 B),
+           registry  address (20 B),
+           issuer    address (20 B),
+           rootId    uint64  (8 B),
+           root      bytes32 (32 B),
+           issuedAt  uint32  (4 B),
+           expiresAt uint32  (4 B)))    // 134-byte preimage
+signature = secp256k1 sign of keccak256("\x19Ethereum Signed Message:\n32" ‖ digest)
+```
+In ethers v6 this is `wallet.signMessage(getBytes(digest))`. Never sign the hex string: that produces the `\n66` prefix. Kotlin encodes every integer at its exact width (no `BigInteger.toByteArray` sign byte or stripping).
+
+The issuer posts the root on-chain first, reads `rootId` and `postedAt` from the `RootPosted` event, signs, and then publishes to Arkiv.
 
 ### 3.4 QR payload (427 bytes → 641 Base45 chars)
 
@@ -106,44 +134,53 @@ The issuer posts the root on-chain first, then signs it using the returned `root
 | 358 | 4 | `expiresAt` |
 | 362 | 65 | `signature` (r, s, v) |
 
-The payload is encoded as Base45 (RFC 9285) in a QR code at error-correction level M. `currentDay` is not sent: the scanner derives it from `epochId`.
+The payload is encoded as Base45 (RFC 9285): 213 two-byte groups → 639 chars, plus 1 trailing byte → 2 chars, for 641. The QR is encoded in **alphanumeric mode** at error-correction level M, which needs **version 16** (capacity 658). `currentDay` is not sent: the scanner derives it from `epochId`.
 
-**No stable identifier:** `issuer` and `root` are shared by every passenger on that root. `zoneClass` takes 3 values. `nullifier` changes every epoch. Groth16 proofs are re-randomised on every proving run.
+**No stable identifier across epochs:** `issuer`, `rootId`, `root`, `issuedAt`, `expiresAt` and `signature` are shared by every phone carrying that root. `zoneClass` takes 3 values. `nullifier` changes every epoch. Groth16 proofs are re-randomised on every proving run. **Anonymity set:** the phones that carry the same root and class. See §8 for how big that set is and how it is kept large.
 
 ## 4. Circuit statement (`circuits/pass.circom`)
 
 **Public inputs, in order:** `root, nullifier, epochId, currentDay, zoneClass`
-**Private inputs:** `secret, validUntilDay, depth, indices[20], siblings[20]`
+**Private inputs:** `secret, validUntilDay, depth, pathIndex, siblings[20]`
 
 **Constraints:**
 1. `leaf = Poseidon3(Poseidon1(secret), validUntilDay, zoneClass)`
-2. `root === BinaryMerkleRoot(20)(leaf, depth, indices, siblings)`
-3. `nullifier === Poseidon2(secret, epochId)`
-4. `Num2Bits(16)` on `validUntilDay` and `currentDay`, then `LessEqThan(16)(currentDay, validUntilDay) === 1`
-5. Every signal is fixed by `<==` or `===`. No signal is assigned with `<--` alone.
+2. `Num2Bits(5)(depth)` and `LessEqThan(5)(depth, 20) === 1`. The template outputs 0 for `depth > MAX_DEPTH`, so this check is the caller's job.
+3. `root === BinaryMerkleRoot(20)(leaf, depth, pathIndex, siblings)`. The template decomposes `pathIndex` with `Num2Bits(20)` internally, so the path bits are boolean.
+4. `nullifier === Poseidon2(secret, epochId)`: the same `secret` signal as in step 1.
+5. `Num2Bits(16)` on `validUntilDay` and `currentDay`, then `LessEqThan(16)(currentDay, validUntilDay) === 1`.
+6. `zoneClass · (zoneClass − 1) · (zoneClass − 2) === 0`.
+7. Every signal is fixed by `<==` or `===`. No signal is assigned with `<--` alone.
 
-Target: under 20k constraints. The estimate is about 6.5k. Record the measured value in §10.
+**Why the public inputs can't be faked:** `root` must carry a valid issuer signature and match on-chain state. `nullifier` is bound to the leaf's secret. `epochId` is checked against the scanner clock. `currentDay` is computed by the scanner from `epochId` and never read from the QR. `zoneClass` is inside the leaf. An internal tree node can't be passed off as a leaf: leaves are `Poseidon3` outputs and nodes are `Poseidon2` outputs, so doing so needs a Poseidon preimage.
+
+Target: under 20k constraints (estimate about 6.5k). Record the measured value in §10.
 
 ## 5. Scanner verification algorithm
 
 `verify(qrText, now)` uses only the local store and has no network code. The checks run in order, and the first failure returns its result.
 
-1. **Parse.** Decode Base45. Length must be 427 and `version` must be 1. Otherwise **Red** `MALFORMED`.
+1. **Parse.** Decode Base45. Length must be 427, `version` must be 1, `zoneClass ≤ 2`, `root` must be nonzero and `< r`, and `nullifier` must be `< r`. Otherwise **Red** `MALFORMED`. Without the canonical check, `nullifier + k·r` would verify as a fresh nullifier.
 2. **Epoch.** Let `e = floor(now / EPOCH)` and `t = now mod EPOCH`. Accept `epochId == e`, or `epochId == e-1` when `t ≤ SKEW`, or `epochId == e+1` when `EPOCH − t ≤ SKEW`. Otherwise **Red** `WRONG_EPOCH`.
 3. **Scanner freshness.** If `now − lastSync > STALE_MAX`, **Red** `SCANNER_STALE`. The TC must sync.
 4. **Issuer.** `issuer` must be active in the local store. Otherwise **Red** `ISSUER_INACTIVE`.
-5. **Signed root.** The signature must recover to `issuer`. Otherwise **Red** `BAD_SIGNATURE`. `rootId ≥ floor`, else **Red** `BELOW_FLOOR`. `issuedAt ≤ now + SKEW`, and `now < expiresAt`, else **Red** `ROOT_EXPIRED`. A `rootId` the scanner has never seen is **accepted** if all of these checks pass.
+5. **Signed root.**
+   - The signature (§3.3 encoding, `v ∈ {27, 28}`, low `s`) must recover to `issuer`. Otherwise **Red** `BAD_SIGNATURE`.
+   - `rootId ≥ floor[issuer]`, else **Red** `BELOW_FLOOR`.
+   - `expiresAt − issuedAt == ROOT_TTL`, else **Red** `BAD_ROOT_TTL`.
+   - `issuedAt ≤ now + SKEW` and `now < expiresAt`, else **Red** `ROOT_EXPIRED`.
+   - A `rootId` the scanner has never seen is **accepted** if all of these checks pass.
 6. **Proof.** Set `currentDay = day(epochId)` (see §9). Run Groth16 verify with the local `vk` on `[root, nullifier, epochId, currentDay, zoneClass]`. Failure is **Red** `BAD_PROOF`.
 7. **Class.** If this checkpoint requires a fare class, check that `zoneClass` is at least that class. Otherwise **Red** `WRONG_CLASS`.
 8. **Nullifier.** Look up `nullifier` in the local log:
-   - Seen within **DEBOUNCE** → this is the same scan repeating. Show the previous result again and don't count it.
+   - The same nullifier read again while the code has stayed in view (no decode gap ≥ **DEBOUNCE_GAP** since its last read) is the same showing. Keep the current result on screen and don't count it. The camera keeps decoding while a result is shown, so a code held steadily in view keeps refreshing its last-read time.
    - Not seen → count = 1.
    - Seen once → count = 2 → **Amber** `SEEN_BEFORE`.
    - Seen two or more times → **Red** `DUPLICATE`.
-9. **Store** `{nullifier, epochId, count, firstSeen}`. Purge entries once `epochId < e − 1`. Nothing else is written.
+9. **Store** `{nullifier, epochId, count, firstSeen, lastRead}`. Purge entries once `epochId < e − 1`. Nothing else is written.
 10. **Result.** **Green**, unless one of these Amber conditions applies: the nullifier count is 2; `expiresAt − now < EXPIRY_WARN` (`ROOT_NEAR_EXPIRY`); or `now − lastSync > STALE_WARN` (`SCANNER_UNSYNCED`).
 
-**Sync.** Sync is online only and never blocks verification. It reads from the Registry: active issuers, `floor`, the latest `rootId` per issuer. It reads from Arkiv: signed roots, the scanner list, and `vk`. The vk hash must match the hash bundled in the APK; if it doesn't, the new vk is rejected. Sync then uploads scan batches.
+**Sync.** Sync is online only and never blocks verification. It reads from the Registry: active issuers, `floor(issuer)` and `latestRoot(issuer)` for each active issuer, and `rootCount()`. It reads from Arkiv: the scanner list and `vk`, filtered on `$creator`/`$owner`. The vk hash must match the hash bundled in the APK; if it doesn't, the new vk is rejected. Sync then uploads scan batches.
 
 **Scan batch.** `{scannerPubKey, epochId, nullifiers[]}`, signed by the scanner key. Batches are grouped per epoch and contain no timestamps finer than the epoch.
 
@@ -153,15 +190,17 @@ Target: under 20k constraints. The estimate is about 6.5k. Record the measured v
 - The same pass in the same epoch gives the same nullifier at every scanner. This is what makes duplicates detectable.
 - Across epochs, nullifiers can't be linked without the secret. The issuer doesn't have it either.
 - A repeated nullifier means **the same pass was shown more than once in one epoch**. Usually that is a shared screenshot; occasionally it is a TC re-checking.
-- **Pre-prover.** The phone generates proofs for the current epoch and the next **PREPROVE** epochs, only after the device has been unlocked. The lock-screen QR shows only proofs already cached. Proofs are never generated for past epochs.
+- Within **SKEW** of an epoch boundary, two epochs are accepted, so one pass has two valid nullifiers for up to 120 s (§8).
+- **Pre-prover.** The phone generates proofs for the current epoch and the next **PREPROVE** epochs, only after the device has been unlocked. When online it first tries to refresh to the newest root (§3.1). The lock-screen QR shows only proofs already cached. Proofs are never generated for past epochs.
 
 ## 7. Revocation
 
 | Case | Mechanism | Takes effect |
 |---|---|---|
-| Lost phone, refund, fraud | Issuer sets the leaf to 0, writes a `Revocation` entity to Arkiv, and publishes the next root | Synced scanners and refreshed phones get the new root; the old root still works until its `expiresAt` (≤ **ROOT_TTL**) |
-| Issuer key compromised | Authority calls `suspendIssuer` | At the scanner's next sync |
-| Bad roots in circulation | Authority calls `setMinRootId(newFloor)`. The floor never decreases. It is global, so every active issuer must repost at once | At the scanner's next sync |
+| Lost phone, refund, fraud | Issuer writes a `Revocation` (`reason = revoked`) to Arkiv, sets the leaf to 0 and publishes the next root | Synced scanners and refreshed phones get the new root; the old root still works until its `expiresAt` (≤ **ROOT_TTL**) unless the authority raises that issuer's floor |
+| Issuer key compromised | Authority calls `suspendIssuer`. Suspension blocks `postRoot` immediately | At the scanner's next sync |
+| Bad roots in circulation from one issuer | Authority calls `setMinRootId(issuer, newFloor)`. Requires `floor[issuer] < newFloor ≤ rootCount() + 1`, so the floor never decreases and never strands the issuer. That issuer's next `postRoot` skips the `ROOT_INTERVAL` wait | At the scanner's next sync; phones need one refresh. Other issuers are unaffected |
+| Suspended issuer re-added | `addIssuer` sets `floor[issuer] = rootCount() + 1`, so roots signed before the suspension don't come back | At the scanner's next sync |
 
 Shared screenshots are **not** revocable. Audit can count duplicates but cannot map a nullifier to a leaf.
 
@@ -169,36 +208,41 @@ Shared screenshots are **not** revocable. Audit can count duplicates but cannot 
 
 | Attack | Mitigation | Residual risk |
 |---|---|---|
-| **Screenshot / QR sharing** | Per-epoch nullifier. A second showing at the same scanner is Amber, a third is Red. Epochs are 10 min, and the skew window is only 120 s | Detected **per scanner only**. Cross-scanner sharing is visible in audit as a statistic, but can't be attributed to a pass. A friend at a different gate in the same epoch passes |
-| **Replay of an old signed root** | Scanner checks `expiresAt`, `rootId ≥ floor`, and that the issuer is active | A revoked pass still works on its old root for up to **ROOT_TTL**, or until the floor is raised |
-| **Malicious issuer: tagging** (a unique root per passenger, to recognise them at scans) | The passenger only accepts a signed root that it fetched **from Arkiv** and that its path verifies against. Root rate is limited to 1 per **ROOT_INTERVAL**. The audit page flags issuers that exceed it | An issuer could still split users across consecutive roots. That is bounded at 96 roots a day, and users converge to the latest root on refresh |
-| **Malicious issuer: minting** | It can only mint its own passes. The authority can suspend it | Fake passes from a rogue issuer last until suspension plus the next sync |
-| **Scanner log linkability** | The log stores only the nullifier, epoch and count, purged after 2 epochs. Batches have epoch granularity | Scanners that collude can link one pass **within one epoch**. That is by design and needed for audit |
-| **Lost or stolen phone** | Secret is Keystore-wrapped and `allowBackup=false`. The lock screen shows only cached proofs (≤ **PREPROVE** epochs). User reports the loss and the issuer revokes | A thief with a locked phone gets about 2 h. A thief with an unlocked phone gets the pass until the next root takes effect |
-| **Clock skew** | Adjacent epochs are accepted only within **SKEW** of the boundary. Scanners resync time at each online sync | Scanner drift above 120 s gives false Reds. Shown as reason `WRONG_EPOCH` |
+| **Screenshot / QR sharing** | Per-epoch nullifier. A second showing at the same scanner is Amber, a third is Red. Epochs are 10 min, and the skew window is only 120 s. Debounce ignores repeats only while the code stays in view (gap < **DEBOUNCE_GAP**) | Detected **per scanner only**. Cross-scanner sharing is visible in audit as a statistic, but can't be attributed to a pass. A friend at a different gate in the same epoch passes. Swapping two phones in front of the camera in under 1 s counts as one showing. Within 120 s of an epoch boundary, owner and friend can each use a different epoch's proof |
+| **Forged membership** | `BinaryMerkleRoot` constrains path bits; `depth ≤ 20` is constrained in the circuit; `postRoot` rejects root 0; the scanner rejects root 0 and non-canonical field values | None known beyond Groth16 soundness and the trusted setup |
+| **Replay of an old signed root** | Scanner checks `expiresAt`, the exact TTL, `rootId ≥ floor[issuer]`, and that the issuer is active | A revoked pass still works on its old root for up to **ROOT_TTL**, or until that issuer's floor is raised |
+| **Malicious issuer: tagging** (a unique root per passenger, to recognise them at scans) | The phone accepts only the highest-`rootId` `SignedRoot` on Arkiv, its path must verify against it, and the Registry must hold the same `(issuer, root, postedAt)`. So every accepted root was posted on-chain, at most 1 per **ROOT_INTERVAL**, and `issuedAt`/`expiresAt` are fixed by the chain. If an issuer publishes two `SignedRoot`s for one `rootId` (for example, different ECDSA signatures), phones refuse to switch, and the audit page flags it as public evidence. `zoneClass` is limited to 3 values in the circuit | An issuer can still split users across consecutive roots: up to 96 roots a day in production (1,440 at the demo's 60 s). Users converge on the latest root at each refresh |
+| **Anonymity set of a root** | Phones refresh to the newest root on open, on unlock when online, and before each pre-prove batch | The set is the phones that carry the same root and class. A phone that stays offline carries an older root that fewer phones share. Right after a purchase, the newest root is held only by phones that refreshed since it was posted. Demo-scale sets are tiny. An issuer colluding with scanners could narrow a passenger down to "refreshed in that interval" |
+| **Malicious issuer: minting / long-lived roots** | It can only mint its own passes. Scanners require `expiresAt − issuedAt == ROOT_TTL`. The authority can suspend it. The audit page flags `SignedRoot`s that aren't on-chain | Fake passes from a rogue issuer last until suspension plus the next sync |
+| **Arkiv data injection** | Readers keep only entities whose `$creator` and `$owner` equal the issuer address. Everything else is rebuilt and checked against a signed, on-chain root | An Arkiv RPC provider that withholds entities only causes "Couldn't update" (the old root keeps working) |
+| **Scanner log linkability** | The log stores only the nullifier, epoch, count and read times, purged after 2 epochs. Batches have epoch granularity | Scanners that collude can link one pass **within one epoch**. That is by design and needed for audit |
+| **Lost or stolen phone** | Secret is Keystore-wrapped and `allowBackup=false`. The lock screen shows only cached proofs (≤ **PREPROVE** epochs). User reports the loss and the issuer revokes | A thief with a locked phone gets about 2 h. A thief with an unlocked phone keeps the pass until the old root expires (≤ **ROOT_TTL**), unless the authority raises that issuer's floor |
+| **Clock skew / day boundary** | Adjacent epochs are accepted only within **SKEW** of the boundary. Scanners resync time at each online sync | Scanner drift above 120 s gives false Reds, shown as reason `WRONG_EPOCH`. A pass that expired yesterday is accepted for up to 120 s after midnight IST |
 | **Forged proof / vk swap** | Groth16 soundness. The vk hash is pinned in the APK and shown on the audit page | Demo-grade trusted setup: one phase-2 contribution |
-| **Issuer server down, or refusing a passenger** (CROPS *C*) | Scanners verify from local data. Phones refresh paths from Arkiv, not from the issuer. The issuer can't single out one passenger, because refresh never contacts it | Existing passes keep working until the last signed root expires (≤ **ROOT_TTL**). New purchases and new roots stop. The authority can register a replacement issuer. This is the demo |
-| **Network observers / RPC providers** (CROPS *P*) | Scanner RPC reads only public Registry state and learns nothing about passengers. Passenger app reads Arkiv; every passenger of an issuer sends the same query, with no leafIndex. RPC and Arkiv endpoints are configurable | The Arkiv/RPC provider sees the phone's IP and which issuer it uses, about once a day. Optional mitigation: anon-rpc or a user-chosen endpoint |
-| **Scale limits** (stated in README) | Leaf download is 32 B × passes | About 32 MB at 1M passes. Production needs per-day delta batches or a private path service |
+| **Issuer server down, or refusing a passenger** (CROPS *C*) | Scanners verify from local data. Phones refresh paths from Arkiv and the Registry, not from the issuer. The issuer can't single out one passenger, because refresh never contacts it | Existing passes keep working until the last signed root expires (≤ **ROOT_TTL**). New purchases and new roots stop. The authority can register a replacement issuer. This is the demo |
+| **Network observers / RPC providers** (CROPS *P*) | Scanner RPC reads only public Registry state and learns nothing about passengers. The passenger app reads Arkiv and makes one Registry `eth_call`; every passenger of an issuer sends the same queries, with no leafIndex. RPC and Arkiv endpoints are configurable | The Arkiv and RPC providers see the phone's IP and which issuer it uses, at most once per **ROOT_INTERVAL** while the phone is in use. Optional mitigation: anon-rpc or a user-chosen endpoint |
+| **Scale limits** (stated in README) | Leaf download is 32 B × live passes; expired batches are zeroed and drop off Arkiv | About 32 MB at 1M live passes. Production needs per-day delta batches or a private path service |
 
 ## 9. Parameters
 
 | Name | Default | Notes |
 |---|---|---|
-| `MAX_DEPTH` | 20 | ~1M passes per issuer |
+| `MAX_DEPTH` | 20 | ~1M passes per issuer. `depth ≤ MAX_DEPTH` is constrained in the circuit |
 | `EPOCH` | 600 s | Balances screenshot window against proving/battery cost |
 | `SKEW` | 120 s | Adjacent-epoch acceptance near the boundary |
-| `DEBOUNCE` | 30 s | Same QR re-read by the camera |
+| `DEBOUNCE_GAP` | 1 s | A repeat read counts as a new showing once the code has been out of view this long |
 | `PREPROVE` | 12 epochs | 2 h of cached proofs |
-| `ROOT_TTL` | 36 h | Daily refresh plus 12 h grace |
-| `ROOT_INTERVAL` | 15 min (production); **60 s in the demo deployment** | Minimum time between roots per issuer. Enforced **on-chain** by a Registry constructor parameter, and shown on the audit page |
+| `ROOT_TTL` | 36 h | Daily refresh plus 12 h grace. `expiresAt − issuedAt` must equal it exactly |
+| `ROOT_INTERVAL` | 15 min (production); **60 s in the demo deployment** | Minimum time between roots per issuer. Enforced **on-chain** by the Registry constructor parameter `minRootInterval` (immutable), shown on the audit page. Binding on phones because they check `rootInfo` (§3.1). Skipped once when the issuer's latest root is below its floor |
 | `EXPIRY_WARN` | 2 h | Amber when the root is this close to expiry |
 | `STALE_WARN` | 24 h | Amber when the scanner hasn't synced for this long |
 | `STALE_MAX` | 48 h | Red after this: the scanner must sync |
 | `DAY_OFFSET` | 19,800 s (IST) | `day(t) = floor((t + DAY_OFFSET) / 86400)`, and `day(epochId) = day(epochId·EPOCH)`. 600 divides 19,800, so day boundaries fall on epoch boundaries |
-| QR size | 427 B / 641 chars | Limit is 1.5 KB |
-| Arkiv expiry | signed root: `expiresAt` + 1 h; leaf batch and revocation: latest `validUntilDay` in the batch + 1 d; scanner list: 7 d; vk: 30 d | The writer republishes before expiry. Expired passes drop out of public data on their own |
-| Arkiv entities | `SignedRoot`, `LeafBatch`, `Revocation`, `ScannerList`, `VerifyKey` | Owner = writer's wallet (the issuer's address). Readers filter by `type`, `issuer` (an active issuer from the Registry), `rootId`. Full schema in `/arkiv/schema.md` |
+| QR size | 427 B / 641 chars, alphanumeric mode, version 16-M | Limit is 1.5 KB |
+| `LEAF_BATCH_MAX` | 2,000 leaves | Keeps a `LeafBatch` well under Arkiv's 128 KiB per entity |
+| Arkiv expiry unit | **blocks**, 2 s per block | Set with the SDK's `ExpirationTime` helpers from the durations below. Maximum lifetime about 182.5 days per create or extension |
+| Arkiv expiry | `SignedRoot`: until `expiresAt` + 1 h. `LeafBatch`: until the end of day `D + 2`, where `D` is the batch's latest `validUntilDay`. `Revocation`: the latest expiry among the batches it touches. `ScannerList`: 7 d. `VerifyKey`: 30 d | The issuer zeroes a batch (`expired` revocation) during day `D + 1`, so phones never need an expired batch. The writer extends `ScannerList` and `VerifyKey` before expiry |
+| Arkiv entities | `SignedRoot`, `LeafBatch`, `Revocation`, `ScannerList`, `VerifyKey` | Created by the issuer's wallet. Readers require `$creator` = `$owner` = issuer address (an active issuer from the Registry), then filter on `type` and `rootId`. Full schema in `/arkiv/schema.md` |
 
 ## 10. Measurements (fill in from real runs)
 
@@ -207,5 +251,5 @@ Shared screenshots are **not** revocable. Audit can count duplicates but cannot 
 | Constraint count | < 20k | — | — |
 | Proving time, mid-range Android | < 3 s | — | — |
 | Verify latency (steps 1–10) | < 1 s | — | — |
-| QR version at level M | ≤ 20 | — | — |
+| QR version at level M | ≤ 20 (computed: 16) | — | — |
 | `postRoot` gas | small | — | — |
