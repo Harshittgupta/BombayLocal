@@ -47,7 +47,7 @@ Load these files on demand only; don't read them all every session:
 ## Core protocol (summary of SPEC.md v0.3)
 
 - `idCommitment = Poseidon1(secret)` is computed on the phone; the secret never leaves it. The **issuer** builds `leaf = Poseidon3(idCommitment, validUntilDay, zoneClass)` from the paid product. `zoneClass ∈ {0,1,2}`.
-- The tree is a Poseidon LeanIMT with MAX_DEPTH 20. Leaves (`LeafBatch`) and revocations (`Revocation`, with `seq`) are published to **Arkiv**. **The phone rebuilds the tree and computes its own path** from `leafCount` and `revSeq` on the `SignedRoot`, checks the signature, and confirms the root with one `Registry.rootInfo(rootId)` call. Expired batches are zeroed, so Arkiv expiry never breaks the rebuild. Readers filter on `$creator` = `$owner` = issuer. The issuer is contacted only at purchase.
+- The tree is a Poseidon LeanIMT with MAX_DEPTH 20. Leaves (`LeafBatch`) and revocations (`Revocation`, with `seq`) are published to **Arkiv**. **The phone rebuilds the tree and computes its own path** from `leafCount` and `revSeq` on the `SignedRoot`, checks the signature, and accepts only the issuer's latest on-chain root (one `Registry.issuerState(issuer)` call; never moves backwards; respects the floor). The issuer posts a root at least every 6 h; passes are ≤ 90 days. Expired batches are zeroed, so Arkiv expiry never breaks the rebuild. Readers filter on `$creator` = `$owner` = issuer. The issuer is contacted only at purchase.
 - Circuit private inputs: `secret, validUntilDay, depth, pathIndex, siblings[20]`. `pathIndex` is LeanIMT's compressed `proof.index`, not the leaf index; `depth = proof.siblings.length` and is constrained ≤ 20.
 - `nullifier = Poseidon2(secret, epochId)`. EPOCH is 600 s. Adjacent epochs are accepted only within 120 s of the boundary.
 - Public inputs, in order: `root, nullifier, epochId, currentDay, zoneClass`.
@@ -57,11 +57,12 @@ Load these files on demand only; don't read them all every session:
 
 ## Interfaces (keep stable)
 
-- **Registry** (constructor `(address authority, uint64 minRootInterval)`):
-  - `addIssuer(address)` (re-adding sets `floor[issuer] = rootCount() + 1`), `suspendIssuer(address)` (authority only).
-  - `postRoot(bytes32 root) returns (uint64 rootId)` (active issuer; `root != 0`; global counter; `minRootInterval` enforced unless the issuer's latest root is below its floor). Stores `latestRoot[issuer]` and `rootInfo[rootId]`.
-  - `setMinRootId(address issuer, uint64 newFloor)` (authority only; `floor[issuer] < newFloor ≤ rootCount() + 1`).
-  - Views: `isActive(address)`, `latestRoot(address) → (root, rootId, postedAt)`, `rootInfo(uint64) → (issuer, root, postedAt)`, `floor(address)`, `rootCount()`. Events on every change.
+- **Registry**: pinned in SPEC §7.1. Summary:
+  - `constructor(address authority, uint64 minRootInterval)`.
+  - `addIssuer(address)` (never re-adds a suspended address), `suspendIssuer(address)`, `setMinRootId(address issuer, uint64 newFloor)`: authority only.
+  - `postRoot(bytes32 root) returns (uint64 rootId)`: active issuer, `root != 0`, ids start at 1, interval skipped once after a floor raise.
+  - Views: `issuers()`, `issuerState(address) → (active, floor, latestRoot, latestRootId, latestPostedAt)`, `isActive`, `floor(address)`, `rootCount()`.
+  - Events: `IssuerAdded`, `IssuerSuspended`, `RootPosted(issuer, rootId, root, postedAt)`, `FloorRaised(issuer, old, new)`.
 - **Issuer HTTP**: `POST /purchase {idCommitment, product}` → `{leafIndex, validUntilDay, zoneClass}`. `POST /scan-batches`. `POST /admin/revoke`. `POST /admin/publish-root`. No refresh endpoint.
 - **Arkiv**:
   - Writer: `publishRoot`, `publishLeafBatch`, `publishRevocation`, `publishScannerList`, `publishVk`.
