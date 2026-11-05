@@ -53,7 +53,14 @@ Still open:
 - verify on the Arkiv testnet in M6 that `$owner` = `$creator` = tx sender at create, and the exact `addr(...)` query syntax (docs-researcher marked both UNKNOWN)
 - BUILD_PLAN M2/M4 prompts still name the v0.2 API (`indices[20]`, `setMinRootId(uint64)`, `floor()`, `nextRootId()`). SPEC v0.3 wins
 
-Rule check: see below
+Rule check (rule-checker subagent, Sonnet):
+- R1 auditable repo ............ PASS  (no keys in git ls-files; .env ignored; .env.example present; nothing to pin yet)
+- R2 commits proper + same day . PASS  (3 module-1 commits, 2026-11-05, pushed, small)
+- R3 this review logged ........ PASS  (hashes 3d8363d, 191ce58 resolve)
+- R4 two separate apps ......... N/A yet
+- R5 real web3, no mocks ....... PASS  (no code; SPEC still requires real Sepolia, Arkiv writes+reads, on-device proving, real Groth16 verify; only the purchase is simulated)
+- R6 CROPS / Arkiv only ........ PASS  (spec freeze serves both prizes)
+- SPEC v0.3 ↔ CLAUDE.md consistency PASS (Core protocol + Registry interface match §7.1)
 Blockers: none
 
 ### 2026-11-05 · module-0 · bootstrap
