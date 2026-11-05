@@ -24,6 +24,23 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-4 · registry (Registry.sol on Sepolia)
+Commit: f6005ab (build, deploy, verify, tests, CI)  (pushed: yes; CI green on all 6 jobs)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on afefde1..f6005ab
+Verdict: Registry correct, SPEC §7.1-compliant, safe to build the issuer on. No CRITICAL/MAJOR.
+Confirmed by reviewer: access control (authority-only add/suspend/setMinRootId; active-only postRoot); per-issuer floor, setMinRootId floor<new<=rootCount()+1 (never decreases/strands); interval-skip fires only while latestRootId<floor, exactly once per raise, next post always clears floor even with interleaved issuers — not exploitable; suspended issuer can NEVER be re-added (everSuspended, no reset); rootId global ++counter from 1, strict, no gaps, root!=0; issuerState tuple order/types match §3.1 scanner; events/indexing match §7.1; immutables, no owner transfer, no upgradeability; nothing per-pass stored.
+Findings (all MINOR/NIT, none fixed in code):
+- [MINOR] unbounded _issuers array; issuers() returns whole list — authority-gated, demo-scale; prod: paginate. Noted, not fixed.
+- [MINOR] floating pragma ^0.8.24 — NOT changed: the deployed contract is verified on Etherscan with this exact source; pinning would desync repo from the verified source. Determinism already from foundry.toml solc=0.8.28.
+- [NIT] test_gas_postRoot asserts nothing (informational probe) — SPEC §10 cites the real receipt as authoritative; tightened §10 wording to drop the probe-derived warm figure.
+- [NIT] on-chain verification can't be confirmed offline — verified live during the build ("Contract successfully verified"); explorer link in deployments.json.
+Fixed in: none (SPEC §10 wording tweak folded into the review-log commit)
+Deployed: 0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16 (Sepolia, verified). deployTx 0x14c9…e725, addIssuerTx 0xd18d…f19d, firstPostRootTx 0xbc44…7e32.
+Still open: Alchemy RPC under-estimates creation gas (deploy OOGs on it); publicnode used and set as the working RPC — user may regenerate the Alchemy key. Sepolia on Pectra so real gas ~4x local cancun estimates.
+
+Rule check: see below
+Blockers: none
+
 ### 2026-11-06 · module-3 · mobile-zk-spike (apps/passenger, on-device Groth16)
 Commit: afefde1 (spike), 69838f7 (review fix)  (pushed: yes)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on 18fe7e8..afefde1

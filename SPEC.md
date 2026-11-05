@@ -303,4 +303,4 @@ Shared screenshots are **not** revocable. Audit can count duplicates but cannot 
 | Proving time, mid-range Android | < 3 s | 3,653 ms (cold first proof: WebView+snarkjs init + 3.3 MB zkey load + prove, single-thread). Warm/pre-proved proofs expected lower; lock-screen shows pre-generated proofs so this isn't on the scan path | Nothing Phone A142 (Android 16, arm64, 7.6 GB), snarkjs 0.7.6 in WebView / 2026-11-06 |
 | Verify latency (steps 1–10) | < 1 s | — | — |
 | QR version at level M | ≤ 20 (computed: 16) | — | — |
-| `postRoot` gas | small | 351,411 (real Sepolia receipt, first post, cold storage; warm ≈ local 42k). Local forge gas-report is ~93k because it models `cancun`; Sepolia runs Pectra (EIP-7623 raises calldata/creation floor) | Sepolia tx 0xbc44…7e32 / 2026-11-06 |
+| `postRoot` gas | small | 351,411 (real Sepolia receipt, first post, cold storage; authoritative). Local forge gas-report models `cancun` (~93k cold), lower because Sepolia runs Pectra (EIP-7623 raises calldata/creation floor costs) | Sepolia tx 0xbc44…7e32 / 2026-11-06 |
