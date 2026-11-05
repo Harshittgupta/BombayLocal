@@ -85,7 +85,9 @@ Load these files on demand only; don't read them all every session:
 #              --private-key 0x$AUTHORITY_PRIVATE_KEY --broadcast --verify \
 #              --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args <authority> 60
 #            (use the publicnode RPC; the Alchemy key under-estimates creation gas. deployments.json has the live address)
-# issuer:    TBD (Module 5)
+# issuer:    cd issuer && npm ci && npm test            (vitest; node:sqlite, real circuit proof)
+#            cd issuer && npm start                      (Fastify; needs .env: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP)
+#            cd issuer && npm run publish-root           (posts a real root on Sepolia via publicnode)
 # apps:      ./gradlew assembleDebug   (inside each app)
 ```
 
