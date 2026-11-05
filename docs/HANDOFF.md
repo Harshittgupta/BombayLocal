@@ -38,3 +38,12 @@ Numbers: QR 427 B / 641 Base45 chars, alphanumeric v16-M. Signed-root preimage 1
 Decisions: Choice 4 changed (per-issuer floor). Phone follows issuerState latest root; expired Arkiv batches zeroed; Arkiv expiry in blocks (2 s); MAX_PASS_DAYS 90; ROOT_HEARTBEAT 6 h; DEBOUNCE_GAP 1 s.
 Open issues: confirm on testnet in M6 that $owner = $creator = sender and the `addr(...)` query form. BUILD_PLAN M2/M4 prompts still show the v0.2 API; follow SPEC v0.3.
 Next: module-2a (circuit) — /model opus, /effort xhigh, plan mode. Needs circom + snarkjs + Node in WSL.
+
+## module-2 · circuit · 2026-11-05 23:55 · commits dba0471, 29d5081, 045a232
+Exists: protocol/ (@unlink/protocol: constants, day/epochId, Poseidon1/2/3, buildTree, merkleProof → {depth, pathIndex, siblings[20]}, nullifier, buildCircuitInput); circuits/pass.circom; circuits/artifacts/ (pass.wasm, pass_final.zkey, verification_key.json, manifest.json); fixtures/vectors.json (5 verified cases + Poseidon/time vectors); .env (local only, gitignored).
+Paths/commands: see CLAUDE.md Commands. Toolchain is native Windows (no WSL Ubuntu): circom 2.2.3 at C:\Users\crevadek\tools\circom.exe (not on PATH; prepend it), snarkjs 0.7.6 as a dev dependency.
+Interfaces: public signals [root, nullifier, epochId, currentDay, zoneClass]; witness wires 1–5 in that order, secret at 6. vk sha256 59cb8b11b9acef7604fa2e4a0157320a55b77c5449c2e034b5f87896a29497ef (pin this in the scanner APK).
+Numbers: 5,697 constraints; laptop prove 957 ms median, verify 24 ms (i5-8350U). Phone numbers still open.
+Decisions: Hermez ptau power 13, one demo-grade contribution; .gitattributes keeps artifacts byte-identical; CI job "Circuit artifacts match source" recompiles and zkey-verifies on every push.
+Open issues: signed-root signature vector for fixtures (M5/M8a); npm audit `ws` via @zk-kit/utils (unused code); README Quickstart still a skeleton (M11).
+Next: module-3 (mobile ZK spike) — /model sonnet, /effort high. Needs Android Studio + SDK/NDK on Windows, a phone with USB debugging (`adb devices`); Rust only if mopro.

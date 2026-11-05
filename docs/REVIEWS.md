@@ -43,7 +43,15 @@ Not fixed (deliberate):
 - a mutation run (drop constraint 4, re-setup, run tests) was reasoned about, not executed; the control case shows the tampered-witness path works
 Still open: signed-root signature vector (SPEC §3.3) belongs in fixtures/vectors.json; lands with the issuer key in M5/M8a
 
-Rule check: see below
+Rule check (rule-checker subagent, Sonnet):
+- R1 auditable repo ............ PASS  (.env ignored and untracked, no key/Alchemy URL in tracked files; exact pins + lockfiles; artifacts committed; README Quickstart still a skeleton, owned by M11; CLAUDE.md Commands work)
+- R2 commits proper + same day . PASS  (4 module-2 commits, 2026-11-05, pushed; the one FAIL was this pending HANDOFF entry, closed by the review log + handoff commit)
+- R3 this review logged ........ PASS  (hashes resolve)
+- R4 two separate apps ......... N/A yet
+- R5 real web3, no mocks ....... PASS  (real snarkjs Groth16 proofs from the compiled circuit; provenance job; no mocks or `return true`; Sepolia/Arkiv items N/A yet)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariant 5 (circuit ↔ JS) ... PASS  (fixtures/vectors.json tested in CI)
+- Invariant 6 (constraints) .... PASS  (no `<--`; 5,697 < 20k, checked against a fresh compile in CI)
 Blockers: none
 
 ### 2026-11-05 · module-1 · spec-freeze (SPEC v0.2 → v0.3)
