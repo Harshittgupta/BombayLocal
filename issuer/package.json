@@ -1,0 +1,31 @@
+{
+  "name": "@unlink/issuer",
+  "version": "0.3.0",
+  "description": "Unlink issuer service (SPEC v0.3): purchases, Merkle tree, Registry.postRoot, signed roots",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "publish-root": "tsx src/cli-publish.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@unlink/protocol": "file:../protocol",
+    "ethers": "6.17.0",
+    "fastify": "5.12.8",
+    "pino": "10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "pino-pretty": "13.2.0",
+    "snarkjs": "0.7.6",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

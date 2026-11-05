@@ -1,0 +1,5 @@
+issuer.db
+issuer.db-*
+*.db
+*.db-shm
+*.db-wal

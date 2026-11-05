@@ -1,0 +1,5 @@
+{
+  "day-pass": { "durationDays": 1, "zoneClass": 0 },
+  "month-pass": { "durationDays": 30, "zoneClass": 0 },
+  "month-first": { "durationDays": 30, "zoneClass": 1 }
+}
