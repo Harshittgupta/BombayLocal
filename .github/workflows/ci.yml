@@ -105,3 +105,16 @@ jobs:
           node-version-file: .nvmrc
       - name: Check bundled assets match circuits/artifacts, fixtures and protocol/ (invariant 5)
         run: node apps/passenger/check-assets.mjs
+
+  contracts:
+    name: Registry contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: forge test
+        working-directory: contracts
+        run: |
+          forge --version
+          forge build --sizes
+          forge test -vv

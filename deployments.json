@@ -1,0 +1,18 @@
+{
+  "sepolia": {
+    "chainId": 11155111,
+    "registry": "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+    "authority": "0x153d390680704090AaA24657697f15e6b91Da23f",
+    "issuer": "0x8d3713FBad1A2E40F40de56D37eab09513cb060B",
+    "minRootInterval": 60,
+    "deployTx": "0x14c9d7dd1f12b40ba758707ada5306fdcc55395dd58c426fdb3139b225c3e725",
+    "addIssuerTx": "0xd18d45157b6af2f3abb592e2243a0a4c60d337f64b0b39afac6334667192f19d",
+    "firstPostRootTx": "0xbc447f78397b57a5fc180674fc91051fb51a90459e7af9ed71822b15e8907e32",
+    "block": 12071909,
+    "verifiedSource": true,
+    "explorer": "https://sepolia.etherscan.io/address/0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+    "solc": "0.8.28",
+    "evmVersion": "cancun",
+    "rpcNote": "Deployed via the publicnode RPC (SEPOLIA_RPC_URL_BACKUP). The configured Alchemy endpoint under-estimates creation gas (its eth_estimateGas returns a value below Sepolia's post-Pectra cost) and OOGs; use publicnode, or replace the Alchemy key."
+  }
+}

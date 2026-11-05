@@ -80,7 +80,11 @@ Load these files on demand only; don't read them all every session:
 # protocol:  cd protocol && npm ci && npm test            (vitest; also: npm run typecheck)
 # circuits:  cd circuits && npm ci && npm run build       (needs circom 2.2.3 on PATH; compile → info → ptau → setup → contribute → vkey → artifacts)
 #            cd circuits && npm run prove-sample           (proves + verifies with committed circuits/artifacts/)
-# contracts: TBD (Module 4)
+# contracts: cd contracts && forge test -vv            (needs foundry; forge snapshot for gas)
+#            forge create src/Registry.sol:Registry --rpc-url $SEPOLIA_RPC_URL_BACKUP \
+#              --private-key 0x$AUTHORITY_PRIVATE_KEY --broadcast --verify \
+#              --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args <authority> 60
+#            (use the publicnode RPC; the Alchemy key under-estimates creation gas. deployments.json has the live address)
 # issuer:    TBD (Module 5)
 # apps:      ./gradlew assembleDebug   (inside each app)
 ```
