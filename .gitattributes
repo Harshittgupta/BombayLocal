@@ -1,0 +1,9 @@
+# LF everywhere so hashes of committed files (artifacts, fixtures) are identical on every OS.
+* text=auto eol=lf
+*.bat text eol=crlf
+
+# Circuit artifacts are hashed and pinned (scanner APK, audit page): store byte-for-byte.
+*.wasm binary
+*.zkey binary
+*.ptau binary
+circuits/artifacts/** -text

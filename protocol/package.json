@@ -1,0 +1,24 @@
+{
+  "name": "@unlink/protocol",
+  "version": "0.3.0",
+  "description": "Unlink protocol constants and hashing shared by circuits, issuer, scripts and audit page (SPEC v0.3)",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zk-kit/lean-imt": "2.2.5",
+    "poseidon-lite": "0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

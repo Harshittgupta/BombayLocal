@@ -77,9 +77,11 @@ Load these files on demand only; don't read them all every session:
 ## Commands (fill these in only after they've actually run)
 
 ```
-# circuits:  TBD (Module 2)
-# contracts: TBD (Module 3)
-# issuer:    TBD (Module 4)
+# protocol:  cd protocol && npm ci && npm test            (vitest; also: npm run typecheck)
+# circuits:  cd circuits && npm ci && npm run build       (needs circom 2.2.3 on PATH; compile → info → ptau → setup → contribute → vkey → artifacts)
+#            cd circuits && npm run prove-sample           (proves + verifies with committed circuits/artifacts/)
+# contracts: TBD (Module 4)
+# issuer:    TBD (Module 5)
 # apps:      ./gradlew assembleDebug   (inside each app)
 ```
 

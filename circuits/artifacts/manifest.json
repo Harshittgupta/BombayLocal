@@ -1,0 +1,15 @@
+{
+  "circuit": "pass.circom",
+  "circom": "2.2.3",
+  "snarkjs": "0.7.6",
+  "ptau": "powersOfTau28_hez_final_13.ptau",
+  "trustedSetup": "demo-grade: one phase-2 contribution",
+  "protocol": "groth16",
+  "curve": "bn128",
+  "nPublic": 5,
+  "sha256": {
+    "pass.wasm": "e69f7155b9f8fd493cc2c69b2b582805b7d912de859d09cdd4e40b509e5aa7fa",
+    "pass_final.zkey": "d289253e175f4c463f8487226e13976f3eadf59b6a0b5eef619f6ed03b7d99c4",
+    "verification_key.json": "59cb8b11b9acef7604fa2e4a0157320a55b77c5449c2e034b5f87896a29497ef"
+  }
+}
