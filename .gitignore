@@ -1,3 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment
 .env
 .env.*
 !.env.example
+
+# Android
+*.keystore
+*.jks
+local.properties
+build/
+.gradle/
+.idea/
+
+# Circuit build temps (but NOT final artifacts: pass.wasm, pass_final.zkey, verification_key.json)
+*.ptau
+circuits/build/tmp/
+
+# Build output
+out/
+cache/

@@ -1,0 +1,38 @@
+name: CI
+
+on: [push]
+
+jobs:
+  no-trackers:
+    name: No third-party trackers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep for analytics / tracker SDKs in apps/
+        run: |
+          if grep -rniE "analytics|firebase|crashlytics|mixpanel|amplitude|sentry|mlkit" apps/; then
+            echo "::error::Found tracker references in apps/"
+            exit 1
+          fi
+          echo "Clean: no trackers found."
+
+  no-mocks:
+    name: No mocks outside tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Grep for mock/fake/stub/dummy/hardcod outside allowed dirs
+        run: |
+          # Search everything except test dirs, fixtures/, docs/, and the one allowed file
+          HITS=$(grep -rniE "mock|fake|stub|dummy|hardcod" \
+            --exclude-dir=test --exclude-dir=tests --exclude-dir=__tests__ \
+            --exclude-dir=fixtures --exclude-dir=docs \
+            --exclude="*.test.*" --exclude="*.spec.*" \
+            --exclude="ci.yml" \
+            . | grep -v "issuer/src/purchase.ts" | grep -v "node_modules" || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
+            echo "::error::Found mock/fake/stub/dummy/hardcod outside allowed locations"
+            exit 1
+          fi
+          echo "Clean: no mocks outside tests/fixtures/docs."
