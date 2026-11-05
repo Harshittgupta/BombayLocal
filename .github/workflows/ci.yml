@@ -94,3 +94,24 @@ jobs:
           npm run compile
           npm run ptau
           npm run verify-artifacts
+
+  passenger-assets:
+    name: Passenger assets in sync with sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Regenerate bundled assets from protocol/, circuits/artifacts/ and fixtures/
+        run: |
+          (cd protocol && npm ci)
+          (cd circuits && npm ci)
+          node apps/passenger/prepare-assets.mjs
+      - name: Fail if the committed assets drift (invariant 5)
+        run: |
+          if ! git diff --exit-code -- apps/passenger/app/src/main/assets; then
+            echo "::error::apps/passenger assets are stale — run: node apps/passenger/prepare-assets.mjs"
+            exit 1
+          fi
+          echo "Passenger assets match protocol/, circuits/artifacts/ and fixtures/."

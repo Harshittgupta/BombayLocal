@@ -1,8 +1,9 @@
 // Regenerates apps/passenger/app/src/main/assets from the single sources of truth (protocol/ and
 // circuits/artifacts/ and fixtures/). Run from the repo root after a circuit rebuild or a protocol change:
 //   node apps/passenger/prepare-assets.mjs
-// The generated assets are committed so the APK builds without Node; the instrumented test fails if they drift
-// from the fixtures. Requires circuits/node_modules (npm ci in circuits) for snarkjs and esbuild.
+// The generated assets are committed so the APK builds without Node. The "passenger-assets" CI job regenerates
+// and diffs them, so a drift from circuits/artifacts, protocol/src or fixtures fails the build (invariant 5).
+// Requires: `npm ci` in protocol/ (pinned esbuild) and in circuits/ (pinned snarkjs).
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync } from "node:fs";
 
@@ -10,11 +11,12 @@ const WWW = "apps/passenger/app/src/main/assets/www";
 const ASSETS = "apps/passenger/app/src/main/assets";
 mkdirSync(WWW, { recursive: true });
 
-// 1. Bundle protocol/ for the browser (IIFE, global `unlinkProtocol`).
+// 1. Bundle protocol/ for the browser (IIFE, global `unlinkProtocol`) with the pinned esbuild, so the output is
+//    byte-reproducible (no minify, fixed version).
 execFileSync(
-  "npx",
+  process.execPath,
   [
-    "esbuild",
+    "protocol/node_modules/esbuild/bin/esbuild",
     "protocol/src/index.ts",
     "--bundle",
     "--format=iife",
@@ -22,7 +24,7 @@ execFileSync(
     "--platform=browser",
     `--outfile=${WWW}/protocol.js`,
   ],
-  { stdio: "inherit", shell: true },
+  { stdio: "inherit" },
 );
 
 // 2. snarkjs browser build + the committed circuit artifacts.
