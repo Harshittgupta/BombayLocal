@@ -38,7 +38,17 @@ Fixed in: none (SPEC §10 wording tweak folded into the review-log commit)
 Deployed: 0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16 (Sepolia, verified). deployTx 0x14c9…e725, addIssuerTx 0xd18d…f19d, firstPostRootTx 0xbc44…7e32.
 Still open: Alchemy RPC under-estimates creation gas (deploy OOGs on it); publicnode used and set as the working RPC — user may regenerate the Alchemy key. Sepolia on Pectra so real gas ~4x local cancun estimates.
 
-Rule check: see below
+Rule check (rule-checker subagent, Sonnet; verified the deployment live):
+- R1 auditable repo ............ PASS  (.env + contracts/{broadcast,out,cache} ignored & untracked; solc 0.8.28 pinned; forge-std vendored 67 files; deployments.json present)
+- R2 commits proper + same day . PASS  (module-4 commits 2026-11-06, pushed, small)
+- R3 this review logged ........ PASS  (f6005ab, bf06c90 resolve)
+- R4 two separate apps ......... N/A yet  (scanner is M8)
+- R5.1 Registry deployed+verified PASS  (Etherscan getsourcecode: ContractName "Registry", v0.8.28, non-empty source; publicnode eth_getCode non-empty)
+- R5.2 postRoot on-chain ....... PASS  (receipt 0xbc44…7e32 status 0x1 to the registry). Issuer-source postRoot is M5.
+- R5.7 mock audit .............. PASS  (only `return true` in the bundled protocol.js; CI "No mocks" green)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariant no-trackers / allowBackup=false  PASS
+- CI (6 jobs) ................. PASS  (green on bf06c90)
 Blockers: none
 
 ### 2026-11-06 · module-3 · mobile-zk-spike (apps/passenger, on-device Groth16)
