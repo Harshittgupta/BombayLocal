@@ -35,10 +35,20 @@ Findings:
 - [MINOR] no timeout on call()/create(); a failed JS load hangs the coroutine → deferred to M7
 - [MINOR] secret transits as a stringified evaluateJavascript arg; JS error path returns a stack → deferred to M7 (secret never leaves device or is logged today; M7 must scrub errors + move secret off the stringified channel, invariant 2)
 Confirmed REAL by reviewer: prove = snarkjs.groth16.fullProve with committed wasm/zkey on device; verify = snarkjs.groth16.verify vs bundled vk; test asserts both verified AND publicSignalsMatch; no fake chain, no server proving, no hardcoded result; no INTERNET permission, assets served locally fail-closed.
-Fixed in: 69838f7
+Fixed in: 69838f7 (pin esbuild; first drift guard), 43c19aa (make the guard pure-Node after the first version failed on the Linux CI runner)
 Still open (for M7): WebView reuse, timeouts, secret-in-error-path hardening; measure a warm/pre-proved proof (cold is 3.65 s > 3 s target; lock-screen uses pre-generated proofs so it's off the scan path).
 
-Rule check: see below
+Rule check (rule-checker subagent, Sonnet; the one FAIL was CI red from the first drift-guard version, fixed in 43c19aa and re-verified all green on HEAD):
+- R1 auditable repo ............ PASS  (.env + local.properties ignored and untracked; exact pins incl. esbuild 0.28.2; assets + wrapper jar committed; README Quickstart still M11)
+- R2 commits proper + same day . PASS  (module-3 commits 2026-11-06, pushed, small)
+- R3 this review logged ........ PASS  (hashes resolve)
+- R4 two separate apps ......... N/A yet  (only apps/passenger; applicationId xyz.unlink.passenger; scanner is M8)
+- R5 real web3, no mocks ....... PASS  (real snarkjs fullProve + verify on device; mock grep hits are only `return true` inside the bundled protocol.js lib, not a verify stub)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariant 1/2 (privacy/secret) PASS  (only proveMs + verified logged; secret-in-error-path deferred to M7)
+- Invariant 3 (allowBackup=false) PASS
+- Invariant 4 (no trackers) .... PASS
+- Invariant 5 (hashing drift) .. PASS  (CI job "passenger-assets" via check-assets.mjs; CI green on 43c19aa)
 Blockers: none
 
 ### 2026-11-05 · module-2 · circuit (2a protocol + circuit + setup, 2b tests + fixtures)
