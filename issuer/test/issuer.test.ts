@@ -15,6 +15,7 @@ import { IssuerDb, TABLES } from "../src/db.ts";
 import { purchase } from "../src/purchase.ts";
 import { loadProducts } from "../src/config.ts";
 import { rootDigest, recoverRootSigner, signRoot, type SignedRootFields } from "../src/sign.ts";
+import { scanBatchDigest } from "../src/scan.ts";
 import { rebuildTree } from "../src/tree.ts";
 import { makeLogger } from "../src/logger.ts";
 
@@ -83,10 +84,45 @@ describe("signed root (SPEC §3.3)", () => {
     };
     const sig = await signRoot(wallet as unknown as ethers.Wallet, fields);
     expect(recoverRootSigner(fields, sig)).toBe(wallet.address);
-    // digest is the pinned 134-byte preimage hash (32-byte output)
-    expect(rootDigest(fields)).toMatch(/^0x[0-9a-f]{64}$/);
     // tampering any field breaks recovery
     expect(recoverRootSigner({ ...fields, rootId: 8 }, sig)).not.toBe(wallet.address);
+    // ethers returns v in {27,28}, low-s (65-byte sig)
+    const { v } = ethers.Signature.from(sig);
+    expect(v === 27 || v === 28).toBe(true);
+    expect(ethers.dataLength(sig)).toBe(65);
+  });
+
+  it("2b. rootDigest matches an independent packed encoding of the exact 134-byte preimage", () => {
+    const f: SignedRootFields = {
+      chainId: 11155111,
+      registry: "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+      issuer: "0x8d3713FBad1A2E40F40de56D37eab09513cb060B",
+      rootId: 42,
+      root: "0x" + "cd".repeat(32),
+      issuedAt: 1_793_000_000,
+      expiresAt: 1_793_000_000 + 36 * 3600,
+    };
+    const preimage = ethers.concat([
+      ethers.toUtf8Bytes("UNLINK-ROOT-v1"), // 14 bytes, no length prefix
+      ethers.zeroPadValue(ethers.toBeHex(f.chainId), 32),
+      ethers.getBytes(f.registry), // 20
+      ethers.getBytes(f.issuer), // 20
+      ethers.zeroPadValue(ethers.toBeHex(f.rootId), 8),
+      f.root, // 32
+      ethers.zeroPadValue(ethers.toBeHex(f.issuedAt), 4),
+      ethers.zeroPadValue(ethers.toBeHex(f.expiresAt), 4),
+    ]);
+    expect(ethers.dataLength(preimage)).toBe(134);
+    expect(ethers.keccak256(preimage)).toBe(rootDigest(f));
+  });
+
+  it("2c. the committed fixtures/sign-vectors.json matches the current code (shared with the Kotlin scanner)", () => {
+    const v = JSON.parse(readFileSync("../fixtures/sign-vectors.json", "utf8"));
+    expect(rootDigest(v.signedRoot.fields)).toBe(v.signedRoot.digest);
+    expect(recoverRootSigner(v.signedRoot.fields, v.signedRoot.eip191Signature)).toBe(v.signedRoot.signer);
+    const sb = v.scanBatch;
+    expect(scanBatchDigest(sb.scannerPubKey, sb.epochId, sb.nullifiersSorted)).toBe(sb.digest);
+    expect(ethers.verifyMessage(ethers.getBytes(sb.digest), sb.eip191Signature)).toBe(sb.signer);
   });
 });
 

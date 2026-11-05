@@ -9,21 +9,27 @@ export type Revocation = { seq: number; leafIndex: number; reason: string };
 export type SignedRoot = SignedRootFields & { signature: string; leafCount: number; revSeq: number; txHash: string };
 
 /**
- * The publisher calls this after each root is posted and signed. Module 6 implements the real Arkiv writer
- * (SignedRoot + LeafBatch + Revocation entities). Here it is just an interface plus a no-op that logs counts.
+ * Split in the SPEC §3.1 publishing order: the publisher writes leaves and revocations FIRST, then posts the
+ * root on-chain, then signs it, then writes the SignedRoot. This guarantees that whenever a rootId exists on
+ * chain, the LeafBatch/Revocation data a phone needs to rebuild it is already on Arkiv. Module 6 implements the
+ * real writer (LeafBatch / Revocation / SignedRoot entities). Here it is the interface plus a no-op that logs counts.
  */
 export interface ArkivPublisher {
-  publishToArkiv(signedRoot: SignedRoot, newLeaves: NewLeaf[], revocations: Revocation[]): Promise<void>;
+  /** Step 1: publish the new leaves and revocations (before postRoot). */
+  publishLeavesAndRevocations(newLeaves: NewLeaf[], revocations: Revocation[]): Promise<void>;
+  /** Step 4: publish the signed root (after postRoot + sign). */
+  publishSignedRoot(signedRoot: SignedRoot): Promise<void>;
 }
 
 export class NoopArkivPublisher implements ArkivPublisher {
   constructor(private readonly log: (o: object, msg: string) => void) {}
 
-  async publishToArkiv(signedRoot: SignedRoot, newLeaves: NewLeaf[], revocations: Revocation[]): Promise<void> {
+  async publishLeavesAndRevocations(newLeaves: NewLeaf[], revocations: Revocation[]): Promise<void> {
     // Counts only — never leaf values or indices (invariant 1).
-    this.log(
-      { rootId: signedRoot.rootId, newLeaves: newLeaves.length, revocations: revocations.length },
-      "arkiv publish (noop; Module 6 implements)",
-    );
+    this.log({ newLeaves: newLeaves.length, revocations: revocations.length }, "arkiv leaves+revocations (noop; Module 6)");
+  }
+
+  async publishSignedRoot(signedRoot: SignedRoot): Promise<void> {
+    this.log({ rootId: signedRoot.rootId, leafCount: signedRoot.leafCount }, "arkiv signed root (noop; Module 6)");
   }
 }

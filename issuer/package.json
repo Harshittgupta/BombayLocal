@@ -12,7 +12,8 @@
     "start": "tsx src/server.ts",
     "publish-root": "tsx src/cli-publish.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sign-fixtures": "tsx scripts/make-sign-fixtures.ts"
   },
   "dependencies": {
     "@unlink/protocol": "file:../protocol",

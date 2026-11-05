@@ -24,7 +24,9 @@ export async function buildServer(opts: {
   const registry = new RegistryClient(env.rpcUrl, env.issuerPrivateKey, deployment.registry);
   const arkiv = opts.arkiv ?? new NoopArkivPublisher((o, m) => log.info(o, m));
 
-  const app = Fastify({ loggerInstance: log });
+  // disableRequestLogging: Fastify's default per-request lines include the client IP (remoteAddress) and URL.
+  // That would link a buyer's IP to purchase time (invariant 1). We log only our own count/rootId/product lines.
+  const app = Fastify({ loggerInstance: log, disableRequestLogging: true });
 
   const requireAdmin = (req: { headers: Record<string, unknown> }): void => {
     if (req.headers["x-admin-token"] !== env.adminToken) throw new Error("unauthorized");

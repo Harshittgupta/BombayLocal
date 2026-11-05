@@ -132,7 +132,7 @@ digest = keccak256(abi.encodePacked(
            expiresAt uint32  (4 B)))    // 134-byte preimage
 signature = secp256k1 sign of keccak256("\x19Ethereum Signed Message:\n32" ‖ digest)
 ```
-In ethers v6 this is `wallet.signMessage(getBytes(digest))`. Never sign the hex string: that produces the `\n66` prefix. Kotlin encodes every integer at its exact width (no `BigInteger.toByteArray` sign byte or stripping).
+In ethers v6 this is `wallet.signMessage(getBytes(digest))`. Never sign the hex string: that produces the `\n66` prefix. Kotlin encodes every integer at its exact width (no `BigInteger.toByteArray` sign byte or stripping). A shared vector (test key) is in `/fixtures/sign-vectors.json`: the Kotlin scanner must reproduce `digest` and recover `signer`.
 
 The issuer posts the root on-chain first, reads `rootId` and `postedAt` from the `RootPosted` event, signs, and then publishes to Arkiv.
 
@@ -210,7 +210,7 @@ Target: under 20k constraints (estimate about 6.5k). Record the measured value i
 
 **Sync.** Sync is online only and never blocks verification. It reads from the Registry: `issuers()`, then `issuerState(issuer)` for each one. It reads from Arkiv: each issuer's `ScannerList` and the authority's `VerifyKey`, filtered on `$creator`/`$owner`. The vk hash must match the hash bundled in the APK; if it doesn't, the new vk is rejected. Sync then uploads scan batches.
 
-**Scan batch.** `{scannerPubKey, epochId, nullifiers[]}`, signed by the scanner key. Nullifiers are sorted ascending, so a batch doesn't reveal the order of scans. Batches are grouped per epoch and contain no timestamps finer than the epoch.
+**Scan batch.** `{scannerPubKey, epochId, nullifiers[]}`, signed by the scanner key. Nullifiers are sorted ascending (so a batch doesn't reveal scan order), and the scanner signs that sorted array. Batches are grouped per epoch and contain no timestamps finer than the epoch. Digest (EIP-191 over the 32-byte hash): `keccak256(abi.encodePacked("UNLINK-SCANBATCH-v1", scannerPubKey:address, epochId:uint32, nullifiers:uint256[]))`. Shared vector in `/fixtures/sign-vectors.json`.
 
 ## 6. Nullifier and epoch rules
 
