@@ -24,6 +24,28 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-05 · module-2 · circuit (2a protocol + circuit + setup, 2b tests + fixtures)
+Commit: dba0471 (2a), 29d5081 (2b), 045a232 (review fixes)  (pushed: yes; CI green on all 4 jobs)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on 371e89c..29d5081; focus: under-constrained signals, Num2Bits aliasing, path-bit booleanity, depth bound, secret < 2^248
+Findings:
+- Circuit itself: no bug found. No `<--` in pass.circom; largest Num2Bits is 20 bits (no aliasing); comparators get range-checked inputs; path bits boolean via Num2Bits(20) inside BinaryMerkleRoot, LSB = level 0 matching LeanIMT; depth 0 and 20 correct; secret < 2^248 only needed in protocol/ (nothing bit-decomposes it); TS ↔ circuit formulas, order and padding agree
+- [MAJOR] negative tests only exercised the wasm witness generator's asserts, and expectCannotProve swallowed any error → R1CS-level tampered-witness tests (own .wtns encoder) with a control case; only "Assert Failed" counts
+- [MAJOR] constraint 4 (nullifier) had no negative test; deleting it would keep CI green → nullifier+1 / epochId+1 tests at witness and R1CS level
+- [MAJOR] nothing tied committed wasm/zkey/vk to pass.circom; "<20k" test read a manifest it couldn't contradict → scripts/verify-artifacts.ts + CI "Circuit artifacts match source" (sha256-pinned circom 2.2.3, fresh compile, zkey verify vs r1cs + ptau, vk re-export equality, sha256)
+- [MINOR] range guards untested → depth = r-1 and day ≥ 2^16 rejected; depth = 20 synthetic path accepted
+- [MINOR] fixture circuitInput unchecked → compared with buildCircuitInput
+- [NIT] `npm run setup` alone skipped the ptau hash check → setup runs ptau first
+Also found while fixing: snarkjs 0.7.6 already rejects public signals ≥ r (test 10b pins it); the Kotlin scanner still needs SPEC §5 step 1.
+Fixed in: 045a232
+Not fixed (deliberate):
+- committed pass.wasm is not byte-compared with a fresh compile: wasm determinism across OSes is unverified; the wasm is bound to the circuit indirectly because its witnesses produce proofs that verify under the provenance-checked vk
+- npm audit: `ws` (high) via @zk-kit/lean-imt → @zk-kit/utils → ethers; WebSocket server code never runs here
+- a mutation run (drop constraint 4, re-setup, run tests) was reasoned about, not executed; the control case shows the tampered-witness path works
+Still open: signed-root signature vector (SPEC §3.3) belongs in fixtures/vectors.json; lands with the issuer key in M5/M8a
+
+Rule check: see below
+Blockers: none
+
 ### 2026-11-05 · module-1 · spec-freeze (SPEC v0.2 → v0.3)
 Commit: 3d8363d (v0.3) + 191ce58 (review fixes)  (pushed: yes)
 Reviewer: hostile-reviewer subagent (Opus), two fresh-context passes: on v0.2, then on the v0.3 diff. docs-researcher (Sonnet) for facts → docs/notes/m1-research.md
