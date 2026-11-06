@@ -19,7 +19,18 @@ kotlin {
 
 dependencies {
     // EIP-191 signer recovery and keccak256 only (SPEC §3.3). 4.13.0 is the newest release built for JVM 17 (4.14+ need 21).
-    implementation("org.web3j:crypto:4.13.0")
+    // Only Sign / Keys / Hash are used, which need web3j utils + bcprov. The other transitive dependencies are cut:
+    // tuweni pulls org.connid (socket-based connector framework code), jc-kzg-4844 ships native libraries, and
+    // jackson / slf4j / abi / rlp are unused here. NoNetworkTest scans every remaining dependency class.
+    implementation("org.web3j:crypto:4.13.0") {
+        exclude(group = "io.tmio")
+        exclude(group = "org.connid")
+        exclude(group = "io.consensys.protocols")
+        exclude(group = "com.fasterxml.jackson.core")
+        exclude(group = "org.slf4j")
+        exclude(group = "org.web3j", module = "abi")
+        exclude(group = "org.web3j", module = "rlp")
+    }
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20250517")
