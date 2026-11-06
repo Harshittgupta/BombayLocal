@@ -33,7 +33,7 @@ Digital passes usually fix speed by adding a server that sees every check. That 
 | Measured | Value |
 |---|---|
 | Circuit | 5,697 constraints |
-| Proof on a phone / in a browser | ~3.5 s (pre-made, never at scan time) / 1.3 s |
+| Proof on a phone / on a laptop (same JS as the web demo) | ~3.5 s (pre-made, never at scan time) / 1.3 s |
 | Check on the scanner | 50.7 ms median, 0 network requests |
 | QR | 427 bytes → 641 Base45 characters → version 16-M |
 | `postRoot` | 57,651 gas, one per batch of purchases |
@@ -69,7 +69,7 @@ Running your own issuer: [`issuer/deploy/README.md`](issuer/deploy/README.md). E
 ## CROPS
 - **C (censorship resistance).** Switch the issuer server off and checks still pass. Scanners verify offline, and phones refresh from Arkiv and Ethereum, never from the issuer. Passes keep working until the last root expires (36 h), and every endpoint is editable in Settings.
 - **O (open source).** MIT. Both apps, the circuit, the contract, the issuer and the website build from this repo; CI re-checks the circuit artifacts. The contract source is verified on Etherscan, and the APKs are built by GitHub Actions.
-- **P (privacy).** The issuer sees a hash and the product at purchase, nothing else. The checker sees validity, class and a 10-minute nullifier. No accounts, analytics or trackers; CI greps for them. Logs carry no IPs.
+- **P (privacy).** The issuer sees a hash and the product at purchase, plus your IP held in memory for at most an hour for the purchase limit (never logged or stored). The checker sees validity, class and a 10-minute nullifier. No accounts, analytics or trackers; CI greps for them. Logs carry no IPs.
 - **S (security).** The secret is created on the phone, wrapped by the Keystore and excluded from backups. Groth16 proofs; signatures checked offline. The scanner needs two RPC providers to agree before trusting state. Limits are stated below.
 
 ## Arkiv
@@ -96,6 +96,7 @@ The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 - **Simulated purchase.** Everything else is real.
 - **Lock-screen code:** whoever holds the phone can show it, and an app with notification access can read it (valid for its 10 minutes only).
 - **A fresh pass narrows its root:** at low traffic the buyer is briefly alone on the newest root.
+- **The APKs are debug builds** (debuggable, debug-signed). Someone who already holds your unlocked phone with USB debugging on could inspect the app and copy the pass secret. A production release is a signed, non-debuggable build.
 - **Testnets only.** The issuer runs on an Oracle Always Free VM that can be paused after 7 idle days.
 
 ## Path to production

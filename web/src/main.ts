@@ -164,6 +164,9 @@ async function prepareCode(): Promise<void> {
   const busy = $("qrBusy");
   busy.hidden = false;
   try {
+    // A long-open tab: move to the newest root before the current one expires (36 h), or the code would turn Red.
+    const r = passenger.root;
+    if (r && r.expiresAt - Date.now() / 1000 < 2 * 3600) await passenger.refresh().catch(() => undefined);
     const text = await passenger.proveNow();
     drawQr($<HTMLCanvasElement>("qrCanvas"), text, "M", "Alphanumeric", 3);
     shownEpoch = passenger.qr!.epoch;
@@ -209,7 +212,9 @@ async function sync(): Promise<void> {
     log(`Scanner sync failed: ${esc((e as Error).message)}`);
   }
 }
-chip.addEventListener("click", () => { if (!scanner.synced) void sync(); });
+chip.addEventListener("click", () => void sync());
+// Re-sync every 30 minutes, like the app's background sync, so a long-open tab never goes stale (SPEC §5 step 3).
+setInterval(() => void sync(), 30 * 60_000);
 setInterval(() => {
   if (!scanner.synced) return;
   const min = Math.floor((scanner.now() - scanner.store.lastSync) / 60_000);
@@ -237,7 +242,7 @@ function showVerdict(c: Check): void {
   $("glyphPath").setAttribute("d", GLYPH[r.status]);
   $("vTitle").textContent = title(r.reason);
   $("vDetail").textContent = r.warnings.slice(1).map(title).join(" · ");
-  $("vMeta").textContent = `${c.requests} network requests · ${c.ms} ms`;
+  $("vMeta").textContent = `${c.requests} requests by the page · ${c.ms} ms`;
   v.hidden = false;
   lastSeen = Date.now();
   if (!r.sameShowing) {

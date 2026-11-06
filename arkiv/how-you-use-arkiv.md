@@ -25,7 +25,7 @@ readers:
 - the issuer (`issuer/src/arkiv/reader.ts`);
 - the passenger app (`ArkivClient.kt`);
 - the scanner (`ArkivReader.kt`);
-- the audit page and the web demo (`web/src/chain.ts`).
+- the web demo (`web/src/chain.ts`) and the audit page (`audit/index.html`).
 
 | Read | Query (abridged) | Used by |
 |---|---|---|

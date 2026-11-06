@@ -24,8 +24,8 @@ away. Arkiv holds the bulky list cheaply and lets it **expire** when the passes 
 | The pass secret | Whoever has it can show the pass | Only the phone (Android Keystore, no backups) |
 | Names, payment details, purchase records | Personal data | Nowhere. The payment is simulated, and the issuer stores no personal fields. |
 | The purchase ↔ leaf-index map | Would link a buyer to their leaf | Issuer's private database (needed for refunds / revocation) |
-| Nullifier logs and scan batches | Would show scan activity | The scanner phone (purged after ~20 min) and the issuer (first sightings only) |
-| Device IDs, IPs | Tracking | Nowhere: no analytics, and no IPs in logs (`issuer/src/logger.ts`, `issuer/deploy/Caddyfile`) |
+| Nullifier logs and scan batches | Would show scan activity | The scanner phone: the nullifier log is purged after ~20 min, and first sightings wait at most 24 h for upload. The issuer keeps uploaded first sightings. |
+| Device IDs, IPs | Tracking | No device IDs anywhere. IPs are never logged (`issuer/src/logger.ts`, `issuer/deploy/Caddyfile`); the purchase limit holds the buyer's IP in memory for at most an hour (`issuer/src/ratelimit.ts`). |
 
 What *is* on Arkiv is public by design:
 - pass hashes (`Poseidon(idCommitment, validUntilDay, class)`), which are hiding commitments;

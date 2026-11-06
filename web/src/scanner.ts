@@ -39,7 +39,16 @@ export class Scanner {
     if (!vk) throw new Error("the verification key on Arkiv does not match the pinned hash");
     const drift = blockTimeMs - Date.now();
     this.clockOffsetMs = Math.abs(drift) > 60_000 ? drift : 0; // block time lags ~12 s: only fix a real drift
-    this.store.issuers.set(CONFIG.issuer.toLowerCase(), { active: state.active, floor: state.floor, latestRootId: state.latestRootId });
+    // Rollback guards (SPEC §5, as on the Android scanner): a floor never decreases, a suspension is sticky and the
+    // latest rootId never goes back, whatever a later sync returns. The demo trusts its one deployed issuer
+    // (CONFIG.issuer) instead of looping over Registry.issuers().
+    const key = CONFIG.issuer.toLowerCase();
+    const prev = this.store.issuers.get(key);
+    this.store.issuers.set(key, {
+      active: state.active && (prev?.active ?? true),
+      floor: prev && prev.floor > state.floor ? prev.floor : state.floor,
+      latestRootId: prev?.latestRootId && prev.latestRootId > state.latestRootId ? prev.latestRootId : state.latestRootId,
+    });
     this.store.vkJson = vk;
     this.store.lastSync = this.now();
     this.synced = true;
