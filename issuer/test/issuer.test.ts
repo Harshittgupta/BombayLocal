@@ -18,6 +18,9 @@ import { rootDigest, recoverRootSigner, signRoot, type SignedRootFields } from "
 import { scanBatchDigest } from "../src/scan.ts";
 import { rebuildTree } from "../src/tree.ts";
 import { makeLogger } from "../src/logger.ts";
+import { AUTO_PUBLISH_DELAY, autoPublishDelay, hasUnpublishedLeaves } from "../src/autopublish.ts";
+import { PurchaseLimiter } from "../src/ratelimit.ts";
+import Fastify from "fastify";
 
 const PRODUCTS = loadProducts();
 const WASM = "../circuits/artifacts/pass.wasm";
@@ -172,5 +175,53 @@ describe("privacy (invariant 1)", () => {
     expect(out).not.toContain(commit);
     expect(out).toContain("[redacted]");
     expect(out).toContain("purchase");
+  });
+});
+
+describe("auto-publish after a purchase (src/autopublish.ts)", () => {
+  it("7. waits at least AUTO_PUBLISH_DELAY and never before the on-chain minRootInterval", () => {
+    expect(autoPublishDelay(1_000, undefined, 60)).toBe(AUTO_PUBLISH_DELAY);
+    expect(autoPublishDelay(1_000, 0, 60)).toBe(AUTO_PUBLISH_DELAY); // last root long ago
+    expect(autoPublishDelay(1_000, 990 - 30, 60)).toBe(AUTO_PUBLISH_DELAY); // 40 s after: 22 s left < 30 s delay
+    expect(autoPublishDelay(1_000, 990, 60)).toBe(52); // 10 s after the last root: 50 s left + 2 s slack
+    expect(autoPublishDelay(1_000, 1_000 - 10, 900)).toBe(892); // production 15 min interval batches purchases
+  });
+
+  it("8. publishes only when a purchased leaf is not yet in the latest root", () => {
+    const db = freshDb();
+    expect(hasUnpublishedLeaves(db)).toBe(false);
+    purchase(db, PRODUCTS, idCommitment(randomSecret()), "day-pass");
+    expect(hasUnpublishedLeaves(db)).toBe(true);
+    db.recordRoot({ rootId: 1, root: "0x01", issuedAt: 1, expiresAt: 1 + 36 * 3600, leafCount: 1, revSeq: 0, signature: "0x", txHash: "0x" });
+    expect(hasUnpublishedLeaves(db)).toBe(false);
+    purchase(db, PRODUCTS, idCommitment(randomSecret()), "month-pass");
+    expect(hasUnpublishedLeaves(db)).toBe(true);
+    db.close();
+  });
+});
+
+describe("purchase abuse limit (src/ratelimit.ts)", () => {
+  it("9. caps purchases per client per hour and in total per day, and forgets clients after an hour", () => {
+    const l = new PurchaseLimiter(2, 3);
+    const t0 = 1_000_000_000;
+    expect(l.allow("a", t0)).toBe(true);
+    expect(l.allow("a", t0 + 1)).toBe(true);
+    expect(l.allow("a", t0 + 2)).toBe(false); // per-client cap
+    expect(l.allow("b", t0 + 3)).toBe(true);
+    expect(l.allow("c", t0 + 4)).toBe(false); // global cap (3 per day)
+    expect(l.clientsHeld).toBe(2);
+    expect(l.allow("a", t0 + 3_600_001)).toBe(false); // hour passed for "a", but still 3 in the day
+    expect(l.clientsHeld).toBe(1); // "a" is forgotten (its hour is over); "b" (t0 + 3) is still inside its hour
+    expect(l.allow("d", t0 + 86_400_005)).toBe(true); // a day later the global window has moved on
+  });
+
+  it("10. behind the hosted VM proxy, req.ip is the client; nobody else can set it", async () => {
+    const app = Fastify({ trustProxy: "127.0.0.1" });
+    app.get("/ip", async (req) => ({ ip: req.ip }));
+    const viaCaddy = await app.inject({ url: "/ip", remoteAddress: "127.0.0.1", headers: { "x-forwarded-for": "203.0.113.9" } });
+    expect(viaCaddy.json().ip).toBe("203.0.113.9");
+    const direct = await app.inject({ url: "/ip", remoteAddress: "198.51.100.7", headers: { "x-forwarded-for": "203.0.113.9" } });
+    expect(direct.json().ip).toBe("198.51.100.7"); // a forged header from an untrusted address is ignored
+    await app.close();
   });
 });

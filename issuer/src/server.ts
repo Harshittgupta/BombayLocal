@@ -7,6 +7,8 @@ import { acceptScanBatch, type ScanBatch } from "./scan.ts";
 import { RegistryClient } from "./registry.ts";
 import { makeArkiv, type ArkivWriter } from "./arkiv/index.ts";
 import { publishRoot } from "./publisher.ts";
+import { AUTO_PUBLISH_RETRIES, autoPublishDelay, hasUnpublishedLeaves } from "./autopublish.ts";
+import { PurchaseLimiter } from "./ratelimit.ts";
 import { makeLogger, type Logger } from "./logger.ts";
 import { ROOT_HEARTBEAT, day } from "@unlink/protocol";
 
@@ -25,16 +27,38 @@ export async function buildServer(opts: {
   const products = loadProducts();
   const allowlist = loadScannerAllowlist();
   const log = opts.logger ?? makeLogger();
-  const db = opts.db ?? new IssuerDb("issuer.db");
+  const db = opts.db ?? new IssuerDb(env.dbPath);
+  const limiter = new PurchaseLimiter();
   const registry = new RegistryClient(env.rpcUrl, env.issuerPrivateKey, deployment.registry);
   const arkiv = opts.arkiv ?? makeArkiv(env.issuerPrivateKey).writer;
 
-  // One publish at a time (admin endpoint and heartbeat share it).
+  // One publish at a time (admin endpoint, heartbeat and auto-publish share it).
   let inFlight: Promise<unknown> = Promise.resolve();
   const publish = () => {
     const run = inFlight.then(() => publishRoot({ db, registry, arkiv, deployment, log }));
     inFlight = run.catch(() => undefined);
     return run;
+  };
+
+  // Auto-publish after a purchase (src/autopublish.ts). The "anything new?" check runs inside the publish queue, so a
+  // heartbeat or admin publish that already covered the new leaves makes this a no-op instead of a second root.
+  let autoTimer: NodeJS.Timeout | null = null;
+  const scheduleAutoPublish = (attempt = 0): void => {
+    if (autoTimer) return;
+    const delay = autoPublishDelay(Math.floor(Date.now() / 1000), db.latestRoot()?.issuedAt, deployment.minRootInterval);
+    autoTimer = setTimeout(() => {
+      autoTimer = null;
+      const run = inFlight.then(() =>
+        hasUnpublishedLeaves(db) ? publishRoot({ db, registry, arkiv, deployment, log }) : undefined,
+      );
+      inFlight = run.catch(() => undefined);
+      run
+        .then((signed) => { if (signed) log.info({ rootId: signed.rootId, leafCount: signed.leafCount }, "auto-publish"); })
+        .catch((e) => {
+          log.error({ err: (e as Error).message, attempt }, "auto-publish failed");
+          if (attempt + 1 < AUTO_PUBLISH_RETRIES) scheduleAutoPublish(attempt + 1);
+        });
+    }, delay * 1000);
   };
 
   /**
@@ -57,7 +81,7 @@ export async function buildServer(opts: {
 
   // disableRequestLogging: Fastify's default per-request lines include the client IP (remoteAddress) and URL.
   // That would link a buyer's IP to purchase time (invariant 1). We log only our own count/rootId/product lines.
-  const app = Fastify({ loggerInstance: log, disableRequestLogging: true });
+  const app = Fastify({ loggerInstance: log, disableRequestLogging: true, trustProxy: env.trustProxy });
 
   const requireAdmin = (req: { headers: Record<string, unknown> }): void => {
     if (req.headers["x-admin-token"] !== env.adminToken) throw new Error("unauthorized");
@@ -69,9 +93,13 @@ export async function buildServer(opts: {
   app.post("/purchase", async (req, reply) => {
     const body = req.body as { idCommitment?: string; product?: string };
     if (!body?.idCommitment || !body?.product) return reply.code(400).send({ error: "idCommitment and product required" });
+    if (!limiter.allow(req.ip)) {
+      return reply.code(429).send({ error: "too many purchases, try again later" });
+    }
     try {
       const result = purchase(db, products, BigInt(body.idCommitment), body.product);
       log.info({ product: body.product }, "purchase"); // no idCommitment/leaf/leafIndex in the log line
+      scheduleAutoPublish();
       return result;
     } catch (e) {
       return reply.code(400).send({ error: (e as Error).message });
@@ -138,5 +166,5 @@ export async function buildServer(opts: {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { app, env, log, startHeartbeat } = await buildServer();
   startHeartbeat();
-  app.listen({ port: env.port, host: "0.0.0.0" }).then((addr) => log.info({ addr }, "issuer listening"));
+  app.listen({ port: env.port, host: env.host }).then((addr) => log.info({ addr }, "issuer listening"));
 }

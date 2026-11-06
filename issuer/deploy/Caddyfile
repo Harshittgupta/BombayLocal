@@ -1,0 +1,7 @@
+# HTTPS for the hosted issuer. setup.sh replaces __DOMAIN__. There is deliberately no `log` directive: Caddy then
+# writes no access log, so no client IP is ever recorded (invariant 1). The issuer itself trusts only this proxy.
+__DOMAIN__ {
+	encode gzip
+	reverse_proxy 127.0.0.1:3000
+	header -Server
+}

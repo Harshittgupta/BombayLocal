@@ -1,0 +1,29 @@
+# The hosted Unlink issuer (issuer/deploy/README.md). Listens on 127.0.0.1:3000 only; Caddy serves HTTPS in front.
+# Exactly one issuer process may ever post roots for this issuer key: never run a second copy anywhere else.
+[Unit]
+Description=Unlink issuer (purchases; roots to Sepolia and Arkiv)
+After=network-online.target
+Wants=network-online.target
+# Never start on an empty database (it would publish a tree that conflicts with what is already on-chain).
+ConditionPathExists=/var/lib/unlink/issuer.db
+
+[Service]
+User=unlink
+Group=unlink
+WorkingDirectory=/opt/unlink/issuer
+# Secrets: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP, ARKIV_* (pushed by push-secrets.sh, mode 640).
+EnvironmentFile=/etc/unlink/issuer.env
+Environment=NODE_ENV=production ISSUER_DB_PATH=/var/lib/unlink/issuer.db ISSUER_HOST=127.0.0.1 ISSUER_PORT=3000 ISSUER_TRUST_PROXY=127.0.0.1
+ExecStart=/bin/sh /opt/unlink/issuer/start.sh
+Restart=always
+RestartSec=5
+
+# Hardening: read-only system and code, writable database directory only.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/unlink
+
+[Install]
+WantedBy=multi-user.target

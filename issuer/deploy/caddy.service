@@ -1,0 +1,22 @@
+# Caddy: HTTPS with an automatic Let's Encrypt certificate, in front of the Unlink issuer (issuer/deploy/README.md).
+[Unit]
+Description=Caddy (HTTPS for the Unlink issuer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=caddy
+Group=caddy
+Environment=XDG_DATA_HOME=/var/lib/caddy XDG_CONFIG_HOME=/var/lib/caddy
+ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/caddy
+
+[Install]
+WantedBy=multi-user.target
