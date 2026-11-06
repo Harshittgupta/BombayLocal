@@ -97,6 +97,10 @@ Load these files on demand only; don't read them all every session:
 #            demo: cd issuer && npm start; adb reverse tcp:3000 tcp:3000; buy in app; POST /admin/publish-root; Refresh
 # qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
 # fixtures:  cd issuer && npm run sign-fixtures   (fixtures/sign-vectors.json + qr-vectors.json, test key pk=1)
+#            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 69 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
+# scanner:   cd apps/scanner && ./gradlew :verifier:test   (JVM; all fixtures/qr + vectors + NoNetworkTest; needs circuits npm ci for snarkjs)
+#            node apps/scanner/prepare-assets.mjs && node apps/scanner/check-assets.mjs   (snarkjs + vk + fixtures into the app; CI check)
+#            cd apps/scanner && ./gradlew :app:assembleDebug :app:connectedDebugAndroidTest   (on-device fixtures + latency; logcat -s UnlinkLatency)
 ```
 
 ## Working rules

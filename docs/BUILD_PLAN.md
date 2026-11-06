@@ -425,7 +425,7 @@ Write scripts/make-qr-fixtures.ts (TypeScript, uses protocol/ and a test issuer 
 each with qrText, now, storeState and expected {result, reason}. Cases: valid; expired root; root near expiry
 (Amber); suspended issuer; below floor; unknown higher rootId accepted; bad signature; bad proof;
 tampered nullifier; wrong epoch; skew boundary at ±119 s accepted and ±121 s rejected; 2nd showing Amber;
-3rd showing Red; debounce within 30 s; scanner stale 25 h Amber and 49 h Red; wrong class; malformed.
+3rd showing Red; debounce (SPEC DEBOUNCE_GAP 1 s; was "30 s"); scanner stale 25 h Amber and 49 h Red; wrong class; malformed.
 Unit tests run every fixture through verify() and assert. Measure verify latency.
 ```
 
@@ -440,7 +440,7 @@ Module 8b: scanner app. Read docs/HANDOFF.md, apps/scanner/verifier API, docs/no
    (secp256k1 key encrypted by a Keystore AES key; Keystore can't hold secp256k1).
    Settings has editable RPC and Arkiv URLs plus a backup RPC (demo: swap the provider).
 3. Camera: CameraX ImageAnalysis + ZXing decoding (NOT Google ML Kit, so CROPS has no third-party SDK
-   question), continuous, debounced (same text within 30 s → re-show the last result).
+   question), continuous, debounced per SPEC §5 step 8 (DEBOUNCE_GAP 1 s since the last read; the verifier already implements it).
 4. Result screen: full-screen GREEN / AMBER / RED, large plain-words reason ("Valid pass",
    "Shown twice — check", "Expired"), haptic, back to scanning after 2 s. A sync status chip:
    "Synced 2 h ago". A hidden long-press shows verify latency (for measurements).

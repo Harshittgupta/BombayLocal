@@ -122,6 +122,28 @@ jobs:
           forge build --sizes
           forge test -vv
 
+  scanner-verifier:
+    name: Scanner OfflineVerifier (SPEC §5 fixtures, no network)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: snarkjs for the test engine; scanner assets match their sources
+        run: |
+          (cd circuits && npm ci)
+          node apps/scanner/check-assets.mjs
+      - name: verifier tests (every fixtures/qr case with real snarkjs Groth16, shared vectors, NoNetworkTest)
+        working-directory: apps/scanner
+        run: |
+          chmod +x gradlew
+          ./gradlew :verifier:test --no-daemon --console=plain
+
   issuer:
     name: Issuer service tests
     runs-on: ubuntu-latest

@@ -1,0 +1,26 @@
+{
+  "name": "malformed-empty",
+  "note": "Empty text.",
+  "qrText": "",
+  "nowMs": 1793040300000,
+  "expected": {
+    "result": "RED",
+    "reason": "MALFORMED"
+  },
+  "storeState": {
+    "chainId": 11155111,
+    "registry": "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+    "vk": "circuits/artifacts/verification_key.json",
+    "lastSyncMs": 1793036700000,
+    "requiredClass": null,
+    "issuers": [
+      {
+        "address": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+        "active": true,
+        "floor": 10,
+        "latestRootId": 12
+      }
+    ],
+    "nullifiers": []
+  }
+}
