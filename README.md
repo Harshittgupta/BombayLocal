@@ -103,11 +103,11 @@ The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 ## Path to production
 - **Governance and setup:** a multisig authority and a multi-party trusted-setup ceremony.
 - **Scale:** delta leaf sync and tree rotation.
-- **Publishing:** a fixed 15-minute cadence instead of after each purchase.
-- **Real use:** payments, an Arkiv access key, then a one-operator pilot.
+- **Publishing:** a fixed 15-minute cadence, not per purchase.
+- **Real use:** payments, an Arkiv key, then a one-operator pilot.
 
 ## AI-use disclosure
-Built by **Harshit Gupta** with **Claude Code** (Anthropic). Harshit defined the architecture and code structure (SPEC.md, the module plan and interfaces), made the product decisions, tested on real phones and approved every module. Claude Code wrote most of the code, tests and docs within that structure; a fresh-context review agent critiqued each module ([`docs/REVIEWS.md`](docs/REVIEWS.md)). Full split: [`docs/AI_USE.md`](docs/AI_USE.md).
+Built by **Harshit Gupta** with **Claude Code** (Anthropic). Harshit defined the architecture and code structure (SPEC.md, the module plan and interfaces), made the product decisions, tested on real phones and approved every module. Claude Code wrote most of the code, tests and docs within that structure; a fresh-context agent reviewed each module ([`docs/REVIEWS.md`](docs/REVIEWS.md)). Details: [`docs/AI_USE.md`](docs/AI_USE.md).
 
 ## License
 MIT. See [LICENSE](LICENSE).
