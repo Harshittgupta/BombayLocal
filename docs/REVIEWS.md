@@ -24,6 +24,62 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-8a · scanner-verifier (apps/scanner :verifier + WebView engine + fixtures/qr)
+Commit: c95267d (build)  (pushed: yes; CI green incl. the new scanner-verifier job)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on c7260a8..c95267d; it re-ran `:verifier:test` (83/83)
+Evidence:
+- JVM: every one of the 69 `fixtures/qr` cases passes through `verify()` with real snarkjs 0.7.6 (via node).
+  - The fixtures are fresh real proofs from `scripts/make-qr-fixtures.ts`, signed with test key pk=1.
+  - Also passing: the shared sign/QR vectors, the RFC Base45 vectors, the BN254 G1/G2 and subgroup checks, and NoNetworkTest.
+- Device (Nothing Phone A142, Android 16): all 69 fixtures give the same results through `WebViewGroth16Engine`, and the bundled vk matches the pinned VK_HASH.
+  - `verify()` median 50.7 ms at c95267d and 48.4 ms after the fixes (SPEC §10).
+- Real-pass cross-check: the real M7 QR (root 8, real issuer, real proof) gave Green, then Amber, then Red on three scans.
+Findings:
+- [MAJOR] web3j crypto 4.13.0 pulled in `org.connid` through tuweni. Its connector-server classes use `java/net/Socket` and `javax/net/ssl`. It also pulled jc-kzg-4844 native libraries, all shipped in the verifier and the APK. NoNetworkTest checked only package names, so it passed anyway. The code was unreachable, which is why this is MAJOR rather than CRITICAL. Fixed:
+  - Excluded tuweni, connid, jc-kzg, jackson, slf4j, web3j abi and web3j rlp. The runtime is now kotlin-stdlib, web3j crypto, web3j utils and bcprov.
+  - NoNetworkTest now scans every class of every dependency jar for `java/net/` and `javax/net/`, and fails on any native library.
+  - The remaining references are pinned in an exact reviewed allowlist, so any new hit fails. They are kotlin-stdlib's `URL.readText` and Path helpers, and bcprov's X.509 OCSP/CRL fetchers and URL-seeded DRBG. None is reachable from Sign, Keys or Hash.
+  - The APK has no `.so` files or connid classes. The tests pass again on the JVM (84/84) and on the device (3/3).
+- [MINOR] A clock that goes backwards makes the debounce gap negative, so every re-read counts as the same showing (a 2nd showing shows Green). A future `lastSync` passes both stale checks.
+- [MINOR] The nullifier log is purged only during a scan. An idle scanner keeps last night's millisecond `firstSeen`/`lastRead` times until the next scan.
+- [MINOR] `WebViewGroth16Engine` has no `onRenderProcessGone` handler, so a renderer crash kills the app.
+- [MINOR] Test gaps:
+  - nothing tests `VERIFIER_ERROR`;
+  - the `unknown-higher-rootid` fixture is identical to `valid`, because the store has no latestRootId;
+  - the on-device test skips the warnings and the "log untouched" checks.
+- SPEC deviations: none blocking. The order of steps 1–10, the reason codes, chainId/registry taken from the store, low-s and v ∈ {27, 28} are all confirmed.
+- R5: clean. Both engines are real snarkjs, the check is `ok === true`, and there is no bypass.
+Fixed in: 05a6a4b
+Not fixed (deliberate, MINOR, assigned to M8b, where the store, clock and lifecycle live):
+- negative-gap guards for debounce and staleness;
+- a periodic purge of the nullifier log;
+- `onRenderProcessGone` (fail closed and rebuild the engine);
+- `VERIFIER_ERROR` and clock-backwards fixtures;
+- latestRootId in the Room store.
+Decisions logged:
+- **Debounce follows SPEC (1 s).** BUILD_PLAN said 30 s; its 8a and 8b lines are corrected.
+- **`VERIFIER_ERROR` is a new Red code** that fails closed (SPEC §5 note).
+- **web3j crypto 4.13.0,** because 4.14 and later need JVM 21.
+- **The JVM tests run real snarkjs through node,** the same library the app runs in its WebView.
+Still open:
+- M8b: camera, Room LocalStore, SyncWorker and the result screens, plus the MINORs above.
+- The phone-to-phone airplane-mode scan has not been done yet.
+
+Rule check (rule-checker subagent, on 05a6a4b):
+- R1 auditable repo ............ PASS  (no keys/.env/keystores in git ls-files; .env.example present; no ^/~/latest/* in package.json deps; fresh clone not tested)
+- R2 commits proper + same day . PASS  (module-8a: commits c95267d, 05a6a4b, small, pushed; origin/main..main empty)
+- R3 this review logged ........ PASS  (this entry; c95267d and 05a6a4b resolve)
+- R4 two separate apps ......... PASS  (apps/passenger + apps/scanner, each with its own settings.gradle.kts; applicationIds xyz.unlink.passenger / xyz.unlink.scanner; no cross-imports either way; scanner :app:assembleDebug BUILD SUCCESSFUL)
+- R5 real web3, no mocks ....... PASS  (item 1: registry has bytecode on Sepolia, verifiedSource; item 6: real snarkjs groth16.verify behind Groth16Engine plus the Kotlin BN254 checks, no bypass; item 7: mock grep finds only issuer/src/purchase.ts (the documented simulated payment) and comments in the generated protocol.js bundle. Items 3/4 for the scanner (sync, Arkiv reads) are N.A. until M8b; item 8 (README) was not re-audited)
+- R6 CROPS / Arkiv only ........ PASS  (no Hedera/World ID in product code; the offline private verifier serves CROPS)
+- Invariants:
+  - 1 PASS: the nullifier log holds only {nullifier, epochId, count, firstSeen, lastRead}; no Log/println in scanner main sources; no leafIndex/deviceId identifiers (re-grepped: no hits).
+  - 3 PASS: verifier/src/main has no java.net/okhttp/Socket references, and NoNetworkTest scans every dependency class.
+  - 4 PASS: no trackers; allowBackup=false in both manifests.
+  - 5 PASS: VectorsTest reproduces sign-vectors.json and qr-vectors.json.
+RULE CHECK: PASS
+Blockers: none
+
 ### 2026-11-06 · module-7 · passenger-app (apps/passenger: Keystore secret, purchase, Arkiv refresh, pre-prover, lock-screen QR)
 Commit: 3a5b0e4 (build)  (pushed: yes)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on 042fcd4..3a5b0e4
