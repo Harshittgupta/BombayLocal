@@ -1,5 +1,5 @@
 {
-  "name": "@unlink/issuer",
+  "name": "@bombaylocal/issuer",
   "version": "0.3.0",
   "description": "BombayLocal issuer service (SPEC v0.3): purchases, Merkle tree, Registry.postRoot, signed roots",
   "license": "MIT",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@arkiv-network/sdk": "1.0.1",
-    "@unlink/protocol": "file:../protocol",
+    "@bombaylocal/protocol": "file:../protocol",
     "ethers": "6.17.0",
     "fastify": "5.12.8",
     "pino": "10.4.0",

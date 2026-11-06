@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { assertField } from "@unlink/protocol";
+import { assertField } from "@bombaylocal/protocol";
 import type { IssuerDb } from "./db.ts";
 
 export type ScanBatch = {

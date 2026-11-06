@@ -122,7 +122,7 @@ class Refresher(
     }
 
     companion object {
-        private const val TAG = "Unlink"
+        private const val TAG = "BombayLocal"
         const val ROOT_TTL = 36L * 3600 // SPEC §9
 
         fun formatTime(unix: Long): String = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(unix * 1000))

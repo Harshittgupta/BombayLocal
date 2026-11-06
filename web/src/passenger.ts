@@ -6,7 +6,7 @@
 import {
   EPOCH, ROOT_TTL, buildCircuitInput, decodeLeaves, epochId as epochOf, idCommitment, merkleProof, passLeaf, qrEncode,
   randomSecret, rebuildFromArkiv, recoverRootSigner,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 import { CONFIG, issuerState, leafBatches, purchase, revocations, signedRoots, type SignedRootRow } from "./chain.ts";
 
 declare const snarkjs: {

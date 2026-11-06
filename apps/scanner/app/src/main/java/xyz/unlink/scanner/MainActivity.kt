@@ -73,7 +73,7 @@ import xyz.unlink.scanner.engine.WebViewGroth16Engine
 import xyz.unlink.scanner.scan.QrAnalyzer
 import xyz.unlink.scanner.ui.theme.Ink
 import xyz.unlink.scanner.ui.theme.Type
-import xyz.unlink.scanner.ui.theme.UnlinkScanTheme
+import xyz.unlink.scanner.ui.theme.BombayLocalScanTheme
 import xyz.unlink.scanner.verifier.OfflineVerifier
 import xyz.unlink.scanner.verifier.Reason
 import xyz.unlink.scanner.verifier.Result
@@ -135,7 +135,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         preview = PreviewView(this)
-        setContent { UnlinkScanTheme { ScanScreen() } }
+        setContent { BombayLocalScanTheme { ScanScreen() } }
         analyzerThread.execute { runCatching { WebViewGroth16Engine.shared(applicationContext) } } // warm up snarkjs
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
         else askCamera.launch(Manifest.permission.CAMERA)
@@ -278,7 +278,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val TAG = "UnlinkScanner"
+        private const val TAG = "BombayLocalScan"
         private const val RESULT_HOLD_MS = 2_000L
     }
 }

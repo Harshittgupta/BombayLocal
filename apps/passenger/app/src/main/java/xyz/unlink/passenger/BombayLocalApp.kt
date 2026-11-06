@@ -15,7 +15,7 @@ import xyz.unlink.passenger.work.EpochScheduler
  * re-posts the notification with the current epoch's code. Each unlock also tops up the proof cache (SPEC §6:
  * pre-prove after the device is unlocked) and, when online, first tries a refresh.
  */
-class UnlinkApp : Application() {
+class BombayLocalApp : Application() {
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {

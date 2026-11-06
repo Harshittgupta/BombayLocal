@@ -108,7 +108,7 @@ Load these files on demand only; don't read them all every session:
 #            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 69 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
 # scanner:   cd apps/scanner && ./gradlew :verifier:test   (JVM; all fixtures/qr + vectors + NoNetworkTest; needs circuits npm ci for snarkjs)
 #            node apps/scanner/prepare-assets.mjs && node apps/scanner/check-assets.mjs   (snarkjs + vk + fixtures into the app; CI check)
-#            cd apps/scanner && ./gradlew :app:assembleDebug :app:connectedDebugAndroidTest   (7 tests: fixtures via Room, key, purge/queue, LIVE sync; logcat -s UnlinkLatency)
+#            cd apps/scanner && ./gradlew :app:assembleDebug :app:connectedDebugAndroidTest   (7 tests: fixtures via Room, key, purge/queue, LIVE sync; logcat -s BombayLocalLatency)
 #            scanner demo: install on phone 2; Settings shows the scanner address -> issuer/scanners.json -> cd issuer && npm run publish-scanners;
 #            redeploy the issuer (update.sh) so scanners.json is live; Sync now ("scannerList=listed"); passenger in airplane mode -> Green/Amber/Red
 ```

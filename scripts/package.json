@@ -1,5 +1,5 @@
 {
-  "name": "@unlink/scripts",
+  "name": "@bombaylocal/scripts",
   "version": "0.8.0",
   "description": "Fixture generators shared across implementations (SPEC v0.3)",
   "license": "MIT",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@noble/curves": "2.4.0",
-    "@unlink/protocol": "file:../protocol",
+    "@bombaylocal/protocol": "file:../protocol",
     "ethers": "6.17.0",
     "snarkjs": "0.7.6"
   },

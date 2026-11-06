@@ -14,7 +14,7 @@ import {
   nullifier,
   passLeaf,
   buildCircuitInput,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 import {
   EPOCH_NOW,
   MANIFEST,

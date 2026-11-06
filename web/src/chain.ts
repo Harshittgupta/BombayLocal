@@ -4,7 +4,7 @@
  * every Arkiv query filters on type + writer AND `$creator = $owner = writer`, and every row is re-checked here,
  * because anyone can write entities with any attributes.
  */
-import { keccakUtf8 } from "@unlink/protocol";
+import { keccakUtf8 } from "@bombaylocal/protocol";
 
 declare const __UNLINK_CONFIG__: {
   chainId: number;

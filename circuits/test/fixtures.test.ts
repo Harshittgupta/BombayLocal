@@ -17,7 +17,7 @@ import {
   merkleProof,
   nullifier,
   passLeaf,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 import { verify } from "./helpers.ts";
 
 const V = JSON.parse(readFileSync("../fixtures/vectors.json", "utf8"));

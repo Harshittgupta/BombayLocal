@@ -87,7 +87,7 @@ private val typography = Typography(
 private val shapes = Shapes(small = Corners.button, medium = Corners.button, large = Corners.card)
 
 @Composable
-fun UnlinkScanTheme(content: @Composable () -> Unit) {
+fun BombayLocalScanTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = scheme, typography = typography, shapes = shapes, content = content)
 }
 

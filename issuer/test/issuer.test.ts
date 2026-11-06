@@ -10,7 +10,7 @@ import {
   idCommitment,
   merkleProof,
   randomSecret,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 import { IssuerDb, TABLES } from "../src/db.ts";
 import { purchase } from "../src/purchase.ts";
 import { loadProducts } from "../src/config.ts";

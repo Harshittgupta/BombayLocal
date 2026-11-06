@@ -6,8 +6,8 @@
  * It uses only `store` and the Groth16 function it is given: no network, no logging. The demo wraps each call in a
  * network-request counter to show that (web/src/scanner.ts).
  */
-import { EPOCH, SKEW, ROOT_TTL, EXPIRY_WARN, STALE_WARN, STALE_MAX, DEBOUNCE_GAP, QR_BYTES } from "@unlink/protocol";
-import { base45Decode, bytesToHex, bytesToUint, dayOfEpoch, recoverDigestSigner, rootDigest } from "@unlink/protocol";
+import { EPOCH, SKEW, ROOT_TTL, EXPIRY_WARN, STALE_WARN, STALE_MAX, DEBOUNCE_GAP, QR_BYTES } from "@bombaylocal/protocol";
+import { base45Decode, bytesToHex, bytesToUint, dayOfEpoch, recoverDigestSigner, rootDigest } from "@bombaylocal/protocol";
 import { FIELD_R, isInG2, isOnG1, type Fp2 } from "./bn254.ts";
 
 /** Coordinates exactly as carried (no reduction), so a coordinate >= p fails the twist check instead of wrapping. */

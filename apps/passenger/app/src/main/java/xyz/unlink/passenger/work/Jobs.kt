@@ -68,14 +68,14 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 class PreproveWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         if (Jobs.isLocked(applicationContext)) {
-            Log.i("Unlink", "preprove skipped: locked")
+            Log.i("BombayLocal", "preprove skipped: locked")
             return Result.success()
         }
         return try {
             Jobs.preprove(applicationContext)
             Result.success()
         } catch (e: Exception) {
-            Log.i("Unlink", "preprove failed: ${e.javaClass.simpleName}")
+            Log.i("BombayLocal", "preprove failed: ${e.javaClass.simpleName}")
             Result.retry()
         }
     }
@@ -83,7 +83,7 @@ class PreproveWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
 /**
  * When proofs get made: on app start, on every unlock while the process is alive (ACTION_USER_PRESENT, registered in
- * UnlinkApp; Android no longer delivers it to manifest receivers), and hourly as a backstop. PREPROVE = 12 epochs
+ * BombayLocalApp; Android no longer delivers it to manifest receivers), and hourly as a backstop. PREPROVE = 12 epochs
  * (2 h), so while the phone is in use (unlocked at least hourly) about 1 h or more of proofs stay cached; a phone left
  * locked for over 2 h has none until its next unlock (by design: proving needs the unlocked Keystore key).
  */

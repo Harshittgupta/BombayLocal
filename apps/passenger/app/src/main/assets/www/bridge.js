@@ -1,7 +1,7 @@
 // Kotlin <-> JS bridge for the WebAppEngine. Kotlin calls window.dispatch(id, method, argsJson); each method
 // returns a JSON-serialisable object that is handed back via AndroidBridge.onResult / onError.
 // snarkjs runs single-threaded to avoid WebView web-worker issues. All hashing, the tree rebuild, signature recovery
-// and the QR codec use the protocol/ bundle (global `unlinkProtocol`), so the phone runs exactly the code the issuer
+// and the QR codec use the protocol/ bundle (global `bombaylocalProtocol`), so the phone runs exactly the code the issuer
 // and circuit tests run (invariant 5).
 //
 // The pass secret never travels in the dispatched script text: methods that need it fetch it once with
@@ -9,7 +9,7 @@
 (function () {
   "use strict";
   var BASE = "https://appassets.androidplatform.net/assets/www/";
-  var u = window.unlinkProtocol;
+  var u = window.bombaylocalProtocol;
   var B = function (s) { return BigInt(s); };
 
   function secretFor(id) {

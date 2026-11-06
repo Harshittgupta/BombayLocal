@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import { MAX_ENTITY_BYTES } from "@arkiv-network/sdk/schema";
-import { DAY_SECONDS, FIELD_R, LEAF_BATCH_MAX, MAX_PASS_DAYS, day, idCommitment, randomSecret } from "@unlink/protocol";
+import { DAY_SECONDS, FIELD_R, LEAF_BATCH_MAX, MAX_PASS_DAYS, day, idCommitment, randomSecret } from "@bombaylocal/protocol";
 import { IssuerDb, TABLES } from "../src/db.ts";
 import { purchase } from "../src/purchase.ts";
 import { loadProducts } from "../src/config.ts";

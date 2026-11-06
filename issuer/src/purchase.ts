@@ -1,7 +1,7 @@
 // SIMULATED PAYMENT. This is the ONLY mock in the whole system (SPEC R5): no real money changes hands.
 // A production issuer would take payment here before building the leaf. Everything else — the tree, the
 // on-chain root, the Arkiv writes, the proofs — is real.
-import { assertField, day, passLeaf, MAX_PASS_DAYS } from "@unlink/protocol";
+import { assertField, day, passLeaf, MAX_PASS_DAYS } from "@bombaylocal/protocol";
 import type { IssuerDb } from "./db.ts";
 import type { Product } from "./config.ts";
 

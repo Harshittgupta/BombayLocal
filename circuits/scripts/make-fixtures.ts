@@ -19,7 +19,7 @@ import {
   merkleProof,
   nullifier,
   passLeaf,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 
 const NOW = 1_793_000_000; // fixed clock: 2026-10-26T09:33:20Z
 const TODAY = day(NOW);

@@ -390,7 +390,7 @@ $("build").textContent = `build ${CONFIG.commit.slice(0, 7)}`;
 
 // ---------------- first-visit tour ----------------
 
-const TOUR_KEY = "unlink-tour-done";
+const TOUR_KEY = "bombaylocal-tour-done";
 type TourStep = { anchor: () => HTMLElement; text: () => string; until: string; next?: boolean; hand?: boolean };
 const STEPS: TourStep[] = [
   { anchor: () => $("buyBtn"), text: () => "1 of 4 · Pick a pass and tap Buy. The payment is simulated: no money is charged.", until: "bought" },

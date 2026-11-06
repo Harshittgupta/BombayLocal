@@ -32,7 +32,7 @@ class Purchaser(
         }
         secrets.commitPending()
         repo.savePass(pass)
-        Log.i("Unlink", "purchase ok")
+        Log.i("BombayLocal", "purchase ok")
         return pass
     }
 }

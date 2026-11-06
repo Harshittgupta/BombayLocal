@@ -31,6 +31,6 @@ class ProverServiceTest {
     }
 
     private companion object {
-        const val TAG = "UnlinkSpike"
+        const val TAG = "BombayLocalSpike"
     }
 }

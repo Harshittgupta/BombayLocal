@@ -19,7 +19,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:label="BombayLocal Scan"
         android:supportsRtl="true"
-        android:theme="@style/Theme.UnlinkScan">
+        android:theme="@style/Theme.BombayLocalScan">
         <activity
             android:name=".MainActivity"
             android:exported="true"

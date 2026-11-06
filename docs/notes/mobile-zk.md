@@ -32,7 +32,7 @@ Rule: every line has a source; UNKNOWN = not confirmed, test in the spike.
 - Bridge: `webView.addJavascriptInterface(Object, String)` and `webView.evaluateJavascript(String, ValueCallback<String>)` exist. https://developer.android.com/reference/android/webkit/WebView . UNCONFIRMED (page truncated, general knowledge): @JavascriptInterface needed, JS->Kotlin calls arrive on a background thread, evaluateJavascript on UI thread, result is JSON-quoted. Pattern: Kotlin evaluateJavascript("run(<json>)"); JS awaits fullProve+verify then calls `Android.onResult(JSON.stringify({proof,publicSignals,ok}))`.
 - androidx.javascriptengine (JavaScriptSandbox): stable 1.1.1 (2026-09-23). Only documented WASM feature is JS_FEATURE_WASM_COMPILATION = `WebAssembly.compile(ArrayBuffer)`; bytes in via provideNamedData + android.consumeNamedDataAsArrayBuffer (JS_FEATURE_PROVIDE_CONSUME_ARRAY_BUFFER); promise return needs JS_FEATURE_PROMISE_RETURN; features depend on installed WebView. WebAssembly.instantiate / Worker / fetch in sandbox: UNKNOWN (undocumented) -> do not use for snarkjs. https://developer.android.com/reference/androidx/javascriptengine/JavaScriptSandbox ; https://developer.android.com/jetpack/androidx/releases/javascriptengine
 - Bundle: protocol/package.json exports "." -> ./src/index.ts; deps poseidon-lite 0.3.0, @zk-kit/lean-imt 2.2.5 (local file). esbuild flags --bundle --format=iife --global-name= --outfile= --minify confirmed; --platform=browser is the default. https://esbuild.github.io/api/
-    npx esbuild protocol/src/index.ts --bundle --format=iife --global-name=unlinkProtocol --platform=browser --minify --outfile=android/app/src/main/assets/www/protocol.js
+    npx esbuild protocol/src/index.ts --bundle --format=iife --global-name=bombaylocalProtocol --platform=browser --minify --outfile=android/app/src/main/assets/www/protocol.js
     cp node_modules/snarkjs/build/snarkjs.min.js android/app/src/main/assets/www/    (README cp command)
   Whether protocol/src imports node: modules (would break a browser bundle): UNKNOWN, run the command to find out.
 
@@ -46,7 +46,7 @@ Rule: every line has a source; UNKNOWN = not confirmed, test in the spike.
 - A biggest risk: undocumented Windows toolchain (Rust + NDK + rust-witness C transpile of pass.wasm); snarkjs-compat of A/B/C also UNKNOWN.
 
 ## Verified in this session (2026-11-06, not just docs)
-- `protocol/src` has NO `node:` imports or `require()`. esbuild `--platform=browser` bundles it to ~122 KB IIFE (global `unlinkProtocol`). Command in Option B above works as written.
+- `protocol/src` has NO `node:` imports or `require()`. esbuild `--platform=browser` bundles it to ~122 KB IIFE (global `bombaylocalProtocol`). Command in Option B above works as written.
 - Ran the bundle in a JS VM: `hash2(1n,2n)` equals protocol/ and the circomlib vector exactly; buildTree/merkleProof produce depth/pathIndex/siblings[20] as expected. Hashing parity (invariant 5) holds by construction when the same bundle runs on the phone.
 - poseidon-lite 0.3.0 decodes its constants with `atob` -> needs a real WebView global, NOT the bare androidx.javascriptengine sandbox. Confirms Option B = WebView (WebViewAssetLoader), not JavaScriptSandbox.
 - Toolchain present: Android Studio, SDK platform android-37, build-tools 36.0.0, platform-tools/adb, JDK 21. MISSING: NDK (only needed for Option A/mopro), Rust, and a connected device (`adb devices` empty) — needed for the 3b on-device test.

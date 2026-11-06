@@ -7,7 +7,7 @@ import { RegistryClient } from "./registry.ts";
 import { makeArkiv } from "./arkiv/index.ts";
 import { publishRoot } from "./publisher.ts";
 import { makeLogger } from "./logger.ts";
-import { randomSecret, idCommitment } from "@unlink/protocol";
+import { randomSecret, idCommitment } from "@bombaylocal/protocol";
 
 const log = makeLogger();
 const env = loadEnv();

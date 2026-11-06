@@ -1,4 +1,4 @@
-import { LEAF_BATCH_MAX, day } from "@unlink/protocol";
+import { LEAF_BATCH_MAX, day } from "@bombaylocal/protocol";
 import { toBeHex, zeroPadValue } from "ethers";
 import type { IssuerDb } from "./db.ts";
 import type { RegistryClient } from "./registry.ts";

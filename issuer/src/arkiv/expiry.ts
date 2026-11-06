@@ -1,4 +1,4 @@
-import { ARKIV_BLOCK_TIME, DAY_OFFSET, DAY_SECONDS } from "@unlink/protocol";
+import { ARKIV_BLOCK_TIME, DAY_OFFSET, DAY_SECONDS } from "@bombaylocal/protocol";
 
 /**
  * Arkiv lifetimes (SPEC §9) as absolute unix deadlines, plus the lifetime in seconds from `now`. Arkiv counts

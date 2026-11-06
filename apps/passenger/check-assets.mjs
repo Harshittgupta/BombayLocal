@@ -37,8 +37,8 @@ const ctx = { atob: (s) => Buffer.from(s, "base64").toString("binary"), crypto: 
 ctx.globalThis = ctx;
 vm.createContext(ctx);
 vm.runInContext(readFileSync(`${WWW}/protocol.js`, "utf8"), ctx);
-const u = ctx.unlinkProtocol;
-if (!u || typeof u.hash2 !== "function") fail("protocol.js did not expose the unlinkProtocol API");
+const u = ctx.bombaylocalProtocol;
+if (!u || typeof u.hash2 !== "function") fail("protocol.js did not expose the bombaylocalProtocol API");
 
 const V = JSON.parse(readFileSync("fixtures/vectors.json", "utf8"));
 const B = (x) => BigInt(x);

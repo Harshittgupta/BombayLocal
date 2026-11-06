@@ -12,7 +12,7 @@ import {
   EPOCH, FIELD_R, ROOT_TTL, base45Encode, buildCircuitInput, buildTree, bytesToHex, dayOfEpoch, encodeQrPayload,
   hexToBytes, idCommitment, merkleProof, passLeaf, rootDigest, uintBytes, type QrPayload, type SignedRootFields,
   type SnarkjsProof,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 
 const ART = "../circuits/artifacts";
 const OUT = "../fixtures/qr";

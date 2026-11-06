@@ -3,7 +3,7 @@
 // a real issuer key. Run from issuer/:  npm run sign-fixtures
 import { readFileSync, writeFileSync } from "node:fs";
 import { ethers, toBeHex, zeroPadValue } from "ethers";
-import { ROOT_TTL, bytesToHex, encodeQrPayload, qrEncode, qrPublicSignals, type QrPayload } from "@unlink/protocol";
+import { ROOT_TTL, bytesToHex, encodeQrPayload, qrEncode, qrPublicSignals, type QrPayload } from "@bombaylocal/protocol";
 import { rootDigest, signRoot, type SignedRootFields } from "../src/sign.ts";
 import { scanBatchDigest } from "../src/scan.ts";
 

@@ -53,7 +53,7 @@ import xyz.unlink.passenger.ui.components.className
 import xyz.unlink.passenger.ui.theme.Corners
 import xyz.unlink.passenger.ui.theme.Ink
 import xyz.unlink.passenger.ui.theme.Type
-import xyz.unlink.passenger.ui.theme.UnlinkTheme
+import xyz.unlink.passenger.ui.theme.BombayLocalTheme
 import xyz.unlink.passenger.ui.theme.animationsEnabled
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,7 +78,7 @@ class QrActivity : ComponentActivity() {
         val animate = animationsEnabled(this)
 
         setContent {
-            UnlinkTheme {
+            BombayLocalTheme {
                 var now by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
                 LaunchedEffect(Unit) {
                     while (true) {

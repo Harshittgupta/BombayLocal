@@ -4,7 +4,7 @@
 // Usage (from circuits/):  npm run verify-qr -- <file-with-the-641-char-QR-text>
 import { readFileSync } from "node:fs";
 import * as snarkjs from "snarkjs";
-import { dayOfEpoch, keccakUtf8, qrDecode, qrPublicSignals, recoverRootSigner } from "@unlink/protocol";
+import { dayOfEpoch, keccakUtf8, qrDecode, qrPublicSignals, recoverRootSigner } from "@bombaylocal/protocol";
 
 const file = process.argv[2];
 if (!file) throw new Error("usage: npm run verify-qr -- <qr-text-file>");

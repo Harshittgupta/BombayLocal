@@ -1,5 +1,5 @@
 {
-  "name": "@unlink/circuits",
+  "name": "@bombaylocal/circuits",
   "version": "0.3.0",
   "description": "BombayLocal pass circuit (SPEC v0.3 §4), Groth16 setup and sample prover",
   "license": "MIT",
@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "26.6.6",
-    "@unlink/protocol": "file:../protocol",
+    "@bombaylocal/protocol": "file:../protocol",
     "snarkjs": "0.7.6",
     "tsx": "4.23.15",
     "typescript": "7.0.2",

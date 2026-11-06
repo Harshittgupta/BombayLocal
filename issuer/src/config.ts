@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { MAX_PASS_DAYS, assertZoneClass } from "@unlink/protocol";
+import { MAX_PASS_DAYS, assertZoneClass } from "@bombaylocal/protocol";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, "..", "..");

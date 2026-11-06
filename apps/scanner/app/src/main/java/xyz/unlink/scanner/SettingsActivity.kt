@@ -62,7 +62,7 @@ import xyz.unlink.scanner.sync.SyncWorker
 import xyz.unlink.scanner.ui.theme.Corners
 import xyz.unlink.scanner.ui.theme.Ink
 import xyz.unlink.scanner.ui.theme.Type
-import xyz.unlink.scanner.ui.theme.UnlinkScanTheme
+import xyz.unlink.scanner.ui.theme.BombayLocalScanTheme
 import java.util.concurrent.Executors
 
 /**
@@ -82,7 +82,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
-        setContent { UnlinkScanTheme { Screen() } }
+        setContent { BombayLocalScanTheme { Screen() } }
         io.execute {
             val a = ScannerKey(applicationContext).address
             main.post { address = a }

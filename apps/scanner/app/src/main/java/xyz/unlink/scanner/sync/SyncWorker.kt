@@ -26,7 +26,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : Worker(context, p
     }
 
     companion object {
-        private const val TAG = "UnlinkScanner"
+        private const val TAG = "BombayLocalScan"
         private const val PERIODIC = "scanner-sync"
         private const val NOW = "scanner-sync-now"
 

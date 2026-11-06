@@ -116,7 +116,7 @@ class OnDeviceVerifierTest {
             db.close()
             dt
         }.sorted()
-        Log.i("UnlinkLatency", "verify() on device with Room store: median %.1f ms, min %.1f, max %.1f (n=20)".format(times[10], times.first(), times.last()))
+        Log.i("BombayLocalLatency", "verify() on device with Room store: median %.1f ms, min %.1f, max %.1f (n=20)".format(times[10], times.first(), times.last()))
         assertTrue("SPEC §10 target < 1 s, median ${times[10]} ms", times[10] < 1000.0)
     }
 }

@@ -12,7 +12,7 @@ import {
   merkleProof,
   passLeaf,
   randomSecret,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 
 async function main(): Promise<void> {
   const now = Math.floor(Date.now() / 1000);

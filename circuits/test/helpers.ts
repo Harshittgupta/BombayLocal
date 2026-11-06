@@ -12,7 +12,7 @@ import {
   passLeaf,
   type CircuitInput,
   type PassTree,
-} from "@unlink/protocol";
+} from "@bombaylocal/protocol";
 
 export const WASM = "artifacts/pass.wasm";
 export const ZKEY = "artifacts/pass_final.zkey";

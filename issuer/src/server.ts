@@ -11,7 +11,7 @@ import { AUTO_PUBLISH_RETRIES, autoPublishDelay, hasUnpublishedLeaves } from "./
 import { PurchaseLimiter } from "./ratelimit.ts";
 import { corsHook } from "./cors.ts";
 import { makeLogger, type Logger } from "./logger.ts";
-import { ROOT_HEARTBEAT, day } from "@unlink/protocol";
+import { ROOT_HEARTBEAT, day } from "@bombaylocal/protocol";
 
 export type Server = Awaited<ReturnType<typeof buildServer>>;
 

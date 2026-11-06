@@ -5,7 +5,7 @@
 //   on-chain root. Prints entity keys, the writer address and one query a judge can run.
 // Usage (from issuer/):  npm run arkiv-roundtrip   (needs ../.env: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, AUTHORITY_PRIVATE_KEY)
 import { readFileSync } from "node:fs";
-import { ROOT_TTL, idCommitment, randomSecret } from "@unlink/protocol";
+import { ROOT_TTL, idCommitment, randomSecret } from "@bombaylocal/protocol";
 import { IssuerDb } from "../src/db.ts";
 import { loadDeployment, loadEnv, loadProducts, loadScannerAllowlist } from "../src/config.ts";
 import { purchase } from "../src/purchase.ts";

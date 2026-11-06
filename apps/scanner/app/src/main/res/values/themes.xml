@@ -2,7 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Dark only (UI brief): the ground colour behind every window, transparent bars with light icons. -->
     <color name="ground">#10161C</color>
-    <style name="Theme.UnlinkScan" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.BombayLocalScan" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
         <item name="android:colorBackground">@color/ground</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

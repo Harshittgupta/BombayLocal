@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { ROOT_TTL } from "@unlink/protocol";
+import { ROOT_TTL } from "@bombaylocal/protocol";
 
 /** The fields a signed root commits to (SPEC §3.3). issuedAt is the on-chain postedAt; expiresAt = issuedAt + ROOT_TTL. */
 export type SignedRootFields = {

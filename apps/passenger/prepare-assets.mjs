@@ -11,7 +11,7 @@ const WWW = "apps/passenger/app/src/main/assets/www";
 const ASSETS = "apps/passenger/app/src/main/assets";
 mkdirSync(WWW, { recursive: true });
 
-// 1. Bundle protocol/ for the browser (IIFE, global `unlinkProtocol`) with the pinned esbuild, so the output is
+// 1. Bundle protocol/ for the browser (IIFE, global `bombaylocalProtocol`) with the pinned esbuild, so the output is
 //    byte-reproducible (no minify, fixed version).
 execFileSync(
   process.execPath,
@@ -20,7 +20,7 @@ execFileSync(
     "protocol/src/index.ts",
     "--bundle",
     "--format=iife",
-    "--global-name=unlinkProtocol",
+    "--global-name=bombaylocalProtocol",
     "--platform=browser",
     `--outfile=${WWW}/protocol.js`,
   ],

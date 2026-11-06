@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { cpus } from "node:os";
 import * as snarkjs from "snarkjs";
-import { buildCircuitInput, buildTree, day, epochId, idCommitment, merkleProof, passLeaf } from "@unlink/protocol";
+import { buildCircuitInput, buildTree, day, epochId, idCommitment, merkleProof, passLeaf } from "@bombaylocal/protocol";
 
 const RUNS = 5;
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];

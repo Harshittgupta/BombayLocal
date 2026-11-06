@@ -47,7 +47,7 @@ class PreProver(
     }
 
     companion object {
-        private const val TAG = "Unlink"
+        private const val TAG = "BombayLocal"
         const val EPOCH = 600L // SPEC §9
         const val PREPROVE = 12 // SPEC §9: current + next 12 epochs
         private const val DAY_OFFSET = 19_800L

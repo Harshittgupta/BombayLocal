@@ -43,7 +43,7 @@ import xyz.unlink.passenger.ui.components.Products
 import xyz.unlink.passenger.ui.components.TicketIcon
 import xyz.unlink.passenger.ui.theme.Ink
 import xyz.unlink.passenger.ui.theme.Type
-import xyz.unlink.passenger.ui.theme.UnlinkTheme
+import xyz.unlink.passenger.ui.theme.BombayLocalTheme
 import xyz.unlink.passenger.work.EpochScheduler
 import xyz.unlink.passenger.work.Jobs
 import java.io.IOException
@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         route = if (PassRepository(this).pass() != null) Route.PASSES else Route.BUY
-        setContent { UnlinkTheme { App() } }
+        setContent { BombayLocalTheme { App() } }
         refresh() // on app open (SPEC §3.1), then pre-prove
     }
 

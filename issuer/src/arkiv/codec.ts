@@ -1,4 +1,4 @@
-import { FIELD_R, type BatchData } from "@unlink/protocol";
+import { FIELD_R, type BatchData } from "@bombaylocal/protocol";
 import { bytesToHex, hexToBytes, type Hex } from "viem";
 
 /** Leaves as bytes: each a 32-byte big-endian field element, concatenated (SPEC §3.1 LeafBatch). */
@@ -12,7 +12,7 @@ export function encodeLeaves(leaves: readonly bigint[]): Uint8Array {
 }
 
 // The decode + rebuild side lives in protocol/ so the issuer and the passenger phone run identical code (invariant 5).
-export { decodeLeaves, rebuildFromArkiv, type BatchData, type RevocationData } from "@unlink/protocol";
+export { decodeLeaves, rebuildFromArkiv, type BatchData, type RevocationData } from "@bombaylocal/protocol";
 
 /** Scanner keys as bytes: 20-byte addresses, concatenated. */
 export function encodeAddresses(addrs: readonly string[]): Uint8Array {
