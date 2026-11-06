@@ -107,7 +107,7 @@ The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 - **Real use:** payments, an Arkiv access key, then a one-operator pilot.
 
 ## AI-use disclosure
-Built with **Claude Code** (Anthropic) for planning, code, tests, docs and deployment, module by module. A human reviewed every task, and a fresh-context review agent critiqued each one; findings and fixes are logged in [`docs/REVIEWS.md`](docs/REVIEWS.md).
+Built by **Harshit Gupta** with **Claude Code** (Anthropic). Harshit defined the architecture and code structure (SPEC.md, the module plan and interfaces), made the product decisions, tested on real phones and approved every module. Claude Code wrote most of the code, tests and docs within that structure; a fresh-context review agent critiqued each module ([`docs/REVIEWS.md`](docs/REVIEWS.md)). Full split: [`docs/AI_USE.md`](docs/AI_USE.md).
 
 ## License
 MIT. See [LICENSE](LICENSE).
