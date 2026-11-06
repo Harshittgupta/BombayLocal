@@ -1,4 +1,4 @@
-import { FIELD_R, buildTree, type PassTree } from "@unlink/protocol";
+import { FIELD_R, type BatchData } from "@unlink/protocol";
 import { bytesToHex, hexToBytes, type Hex } from "viem";
 
 /** Leaves as bytes: each a 32-byte big-endian field element, concatenated (SPEC §3.1 LeafBatch). */
@@ -11,13 +11,8 @@ export function encodeLeaves(leaves: readonly bigint[]): Uint8Array {
   return out;
 }
 
-export function decodeLeaves(hex: Hex): bigint[] {
-  const b = hexToBytes(hex);
-  if (b.length % 32 !== 0) throw new Error(`leaf bytes length ${b.length} is not a multiple of 32`);
-  const out: bigint[] = [];
-  for (let i = 0; i < b.length; i += 32) out.push(BigInt(bytesToHex(b.subarray(i, i + 32))));
-  return out;
-}
+// The decode + rebuild side lives in protocol/ so the issuer and the passenger phone run identical code (invariant 5).
+export { decodeLeaves, rebuildFromArkiv, type BatchData, type RevocationData } from "@unlink/protocol";
 
 /** Scanner keys as bytes: 20-byte addresses, concatenated. */
 export function encodeAddresses(addrs: readonly string[]): Uint8Array {
@@ -38,9 +33,6 @@ export function decodeAddresses(hex: Hex): string[] {
   return out;
 }
 
-export type BatchData = { batchNo: number; fromIndex: number; leaves: bigint[] };
-export type RevocationData = { seq: number; fromIndex: number; count: number };
-
 /** Split consecutive leaves starting at fromIndex into batches of at most `max`, numbered from startBatchNo. */
 export function splitBatches(leaves: readonly bigint[], fromIndex: number, startBatchNo: number, max: number): BatchData[] {
   const out: BatchData[] = [];
@@ -50,33 +42,3 @@ export function splitBatches(leaves: readonly bigint[], fromIndex: number, start
   return out;
 }
 
-/**
- * SPEC §3.1 refresh step 4: rebuild the LeanIMT over [0, leafCount) from public Arkiv data.
- * - each position takes its value from the live LeafBatch covering it, or 0 if none does (expired and zeroed);
- * - overlapping non-identical batches, or any leaf >= r, reject;
- * - then every Revocation with seq <= revSeq sets its range to 0.
- */
-export function rebuildFromArkiv(
-  leafCount: number,
-  revSeq: number,
-  batches: readonly BatchData[],
-  revocations: readonly RevocationData[],
-): PassTree {
-  const pos: (bigint | undefined)[] = new Array(leafCount).fill(undefined);
-  for (const b of batches) {
-    b.leaves.forEach((v, i) => {
-      if (v >= FIELD_R) throw new Error(`batch ${b.batchNo}: leaf >= r`);
-      const idx = b.fromIndex + i;
-      if (idx >= leafCount) return; // published ahead of the root that will cover it
-      const prev = pos[idx];
-      if (prev !== undefined && prev !== v) throw new Error(`overlapping non-identical batches (batch ${b.batchNo})`);
-      pos[idx] = v;
-    });
-  }
-  const values = pos.map((v) => v ?? 0n);
-  for (const r of revocations) {
-    if (r.seq > revSeq) continue;
-    for (let i = r.fromIndex; i < r.fromIndex + r.count && i < leafCount; i++) values[i] = 0n;
-  }
-  return buildTree(values);
-}

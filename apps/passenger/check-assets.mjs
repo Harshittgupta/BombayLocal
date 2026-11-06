@@ -24,6 +24,8 @@ const pairs = [
   [`${WWW}/pass_final.zkey`, "circuits/artifacts/pass_final.zkey"],
   [`${WWW}/verification_key.json`, "circuits/artifacts/verification_key.json"],
   [`${ASSETS}/vectors.json`, "fixtures/vectors.json"],
+  [`${ASSETS}/qr-vectors.json`, "fixtures/qr-vectors.json"],
+  [`${ASSETS}/sign-vectors.json`, "fixtures/sign-vectors.json"],
 ];
 for (const [asset, source] of pairs) {
   if (sha256(asset) !== sha256(source)) fail(`${asset} differs from ${source} — run: node apps/passenger/prepare-assets.mjs`);
@@ -31,7 +33,7 @@ for (const [asset, source] of pairs) {
 console.log("PASS  wasm/zkey/vk/vectors assets are byte-identical to circuits/artifacts and fixtures");
 
 // 2. The committed protocol.js bundle matches fixtures (and thus protocol/src).
-const ctx = { atob: (s) => Buffer.from(s, "base64").toString("binary"), crypto: webcrypto, console };
+const ctx = { atob: (s) => Buffer.from(s, "base64").toString("binary"), crypto: webcrypto, console, TextEncoder, TextDecoder };
 ctx.globalThis = ctx;
 vm.createContext(ctx);
 vm.runInContext(readFileSync(`${WWW}/protocol.js`, "utf8"), ctx);
@@ -50,3 +52,15 @@ for (const c of V.cases) {
   }
 }
 console.log(`PASS  protocol.js bundle matches fixtures (${V.cases.length} cases, poseidon1/2/3) — in sync with protocol/src`);
+
+// 3. The bundle's SPEC §3.3 signature recovery and §3.4 QR codec match the shared vectors (also checked against
+//    protocol/src and the issuer's ethers code by the vitest suites).
+const SV = JSON.parse(readFileSync("fixtures/sign-vectors.json", "utf8"));
+if (u.rootDigest(SV.signedRoot.fields) !== SV.signedRoot.digest) fail("protocol.js rootDigest drift");
+if (u.recoverRootSigner(SV.signedRoot.fields, SV.signedRoot.eip191Signature) !== SV.signedRoot.signer.toLowerCase()) {
+  fail("protocol.js recoverRootSigner drift");
+}
+const QV = JSON.parse(readFileSync("fixtures/qr-vectors.json", "utf8"));
+const qp = u.qrDecode(QV.base45);
+if (u.qrEncode(qp) !== QV.base45 || u.qrPublicSignals(qp).join() !== QV.publicSignals.join()) fail("protocol.js QR codec drift");
+console.log("PASS  protocol.js signed-root recovery and QR codec match fixtures/sign-vectors.json and qr-vectors.json");

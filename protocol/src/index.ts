@@ -3,3 +3,8 @@ export * from "./time.ts";
 export * from "./hash.ts";
 export * from "./tree.ts";
 export * from "./circuit-input.ts";
+export * from "./bytes.ts";
+export * from "./base45.ts";
+export * from "./signed-root.ts";
+export * from "./qr.ts";
+export * from "./arkiv.ts";

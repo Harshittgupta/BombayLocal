@@ -1,0 +1,544 @@
+{
+ "meta": {
+  "recordedAt": "2026-11-06T03:22:28.889Z",
+  "arkiv": "https://rpc.rabdi.db-chain.testnet.arkiv.network",
+  "sepolia": "https://ethereum-sepolia-rpc.publicnode.com",
+  "registry": "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+  "issuer": "0x8d3713FBad1A2E40F40de56D37eab09513cb060B",
+  "latestRootId": 7
+ },
+ "issuerState": "0x0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000012dcd3a91ec53ca31b7c57a9100bfe42b75f63afac86f9a97e8d1b3beb92a5b50000000000000000000000000000000000000000000000000000000000000007000000000000000000000000000000000000000000000000000000006aed3e78",
+ "signedRoot": {
+  "data": [
+   {
+    "key": "0x8651534b6b2fa954fe94e00e41dd529b32cb9908566efe6ad55bc2a4908fb7af",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.signedRoot"
+     },
+     {
+      "name": "chainId",
+      "type": "u64",
+      "value": "0xaa36a7"
+     },
+     {
+      "name": "expiresAt",
+      "type": "u64",
+      "value": "0x6aef38b8"
+     },
+     {
+      "name": "issuedAt",
+      "type": "u64",
+      "value": "0x6aed3e78"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "leafCount",
+      "type": "u64",
+      "value": "0xd"
+     },
+     {
+      "name": "registry",
+      "type": "addr",
+      "value": "0xd13c3d5b02312aefa4661ad1fc8205807f255a16"
+     },
+     {
+      "name": "revSeq",
+      "type": "u64",
+      "value": "0x4"
+     },
+     {
+      "name": "root",
+      "type": "str",
+      "value": "0x12dcd3a91ec53ca31b7c57a9100bfe42b75f63afac86f9a97e8d1b3beb92a5b5"
+     },
+     {
+      "name": "rootId",
+      "type": "u64",
+      "value": "0x7"
+     },
+     {
+      "name": "signature",
+      "type": "bytes",
+      "value": "0x7a8e70e8eb8ac4ecd70f510ea4dfd39c9f09d56f5d0e9a8166617ee5b43f160a648a28259c04143aefd5f597d00ba145f7f7198bcbff76917b6e27af87f2cb241b"
+     },
+     {
+      "name": "txHash",
+      "type": "str",
+      "value": "0x874852b41967d08e1c228b83498bc66889b42a1b86bf04ce8763165064bc3db3"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.signedRoot"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   }
+  ],
+  "blockNumber": "0x43168"
+ },
+ "leafBatch": {
+  "data": [
+   {
+    "key": "0x0ffc90b60e045d48d2b839b9af4f8524d0bb0c87c0327a4a161ec23ba63e6700",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "batchNo",
+      "type": "u64",
+      "value": "0x2"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x3"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x7"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "lastValidDay",
+      "type": "u64",
+      "value": "0x5138"
+     },
+     {
+      "name": "leaves",
+      "type": "bytes",
+      "value": "0x2a57b117c5eb0039a921e21f0978a7a70209e971faecfa4035b4b32771781ae91da607fb2dc8cc7c3bfaac2b8e74f4f3fcc8f621da802ecdde0d3c65f3c286f2049da2ccabf4cd7f6c037fe91098277be0563ae66629b69ff5e8fc5aed384e5d"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0x706fbb6229bd1e7da90f0d0fc5563ee4d9f2763ac2b9abd9a4fde0472bda297a",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "batchNo",
+      "type": "u64",
+      "value": "0x3"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x3"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0xa"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "lastValidDay",
+      "type": "u64",
+      "value": "0x5138"
+     },
+     {
+      "name": "leaves",
+      "type": "bytes",
+      "value": "0x1549fc6990d6b0dcdab6b8c8323458b08ed8ef801cb536a8403125c386455fa505b9be4d8e6772a7f27d3854cd29a90e156cb97b4e8ba62b89bf9c716afc28a6154490f4a07f761102e821b64465e86d9d24e1c37a3ed89b42ba4037548ea99c"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0xb13673d5c19a18bacfc5ff0ebffefaea5872becb8f45628e9efbf07e3bde4d7c",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "batchNo",
+      "type": "u64",
+      "value": "0x0"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x4"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x0"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "lastValidDay",
+      "type": "u64",
+      "value": "0x5138"
+     },
+     {
+      "name": "leaves",
+      "type": "bytes",
+      "value": "0x130776cd910993d7c80323496de2825bebeec1bb12f2172375f780eec44edd2b00741765187d320477fc44b74f38f50e02800735512c2008f3e80b119310188c0868ec02055b3ea55a4a14be925a41d6a60546e273e55480391be0d85975c5be0b96ce04c701dcf883cb18a97ae22f4591fbce86615b7e18e97215cff6e15bb9"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0xf1bc88d12b4ea32579195852b044d033c3ab9abb53e93f5d50589d19f68e30b1",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "batchNo",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x3"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x4"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "lastValidDay",
+      "type": "u64",
+      "value": "0x5138"
+     },
+     {
+      "name": "leaves",
+      "type": "bytes",
+      "value": "0x2f1e98bab17f69765b15104fcbb0aa2d24a934d7dd8e64045eb93f2f9d5dcd470f1e07a428c02dc42bad0f85c1d3a3519bc66bbad980b87520b12936e55e5a1227ef074a62725f4b0d5685a0b0b75118aa4a48554b6f7ced692bcdd2cb455dd1"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.leafBatch"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   }
+  ],
+  "blockNumber": "0x43168"
+ },
+ "revocation": {
+  "data": [
+   {
+    "key": "0x1c51318568a14c7d5ca9cd7c5f635570ca00710bcef6c664d53a0cba90503e46",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x4"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "reason",
+      "type": "str",
+      "value": "revoked"
+     },
+     {
+      "name": "seq",
+      "type": "u64",
+      "value": "0x2"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0x2b73a1dc2102cb3264c98be62c0cd1a4c0c5026cabdbd3262eb0fa30dd31e2e1",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x7"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "reason",
+      "type": "str",
+      "value": "revoked"
+     },
+     {
+      "name": "seq",
+      "type": "u64",
+      "value": "0x3"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0x37d5b564b73fb53f3cf83e91ef35911e72be068580a37925ed24fecc89c99a76",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0xa"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "reason",
+      "type": "str",
+      "value": "revoked"
+     },
+     {
+      "name": "seq",
+      "type": "u64",
+      "value": "0x4"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   },
+   {
+    "key": "0x8bb0590f3f8b37b189c1caa567924f542bf91e1160ba8c38f9abb92b419171ef",
+    "owner": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "creator": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b",
+    "attributes": [
+     {
+      "name": "app",
+      "type": "str",
+      "value": "unlink"
+     },
+     {
+      "name": "arkiv.schema",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "count",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "fromIndex",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "issuer",
+      "type": "addr",
+      "value": "0x8d3713fbad1a2e40f40de56d37eab09513cb060b"
+     },
+     {
+      "name": "reason",
+      "type": "str",
+      "value": "revoked"
+     },
+     {
+      "name": "seq",
+      "type": "u64",
+      "value": "0x1"
+     },
+     {
+      "name": "type",
+      "type": "str",
+      "value": "unlink.revocation"
+     },
+     {
+      "name": "v",
+      "type": "u64",
+      "value": "0x1"
+     }
+    ]
+   }
+  ],
+  "blockNumber": "0x43169"
+ }
+}

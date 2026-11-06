@@ -1,9 +1,9 @@
 // Writes fixtures/sign-vectors.json: shared signed-root and scan-batch vectors (SPEC §3.3, §5) that the Kotlin
 // scanner (M8) and any other implementation must reproduce exactly. Uses a TEST-ONLY private key (pk = 1), never
 // a real issuer key. Run from issuer/:  npm run sign-fixtures
-import { writeFileSync } from "node:fs";
-import { ethers } from "ethers";
-import { ROOT_TTL } from "@unlink/protocol";
+import { readFileSync, writeFileSync } from "node:fs";
+import { ethers, toBeHex, zeroPadValue } from "ethers";
+import { ROOT_TTL, bytesToHex, encodeQrPayload, qrEncode, qrPublicSignals, type QrPayload } from "@unlink/protocol";
 import { rootDigest, signRoot, type SignedRootFields } from "../src/sign.ts";
 import { scanBatchDigest } from "../src/scan.ts";
 
@@ -51,6 +51,47 @@ async function main(): Promise<void> {
   };
   writeFileSync("../fixtures/sign-vectors.json", JSON.stringify(out, null, 2) + "\n");
   console.log("wrote fixtures/sign-vectors.json");
+
+  // fixtures/qr-vectors.json: a complete, self-consistent SPEC §3.4 QR. The real Groth16 proof of fixture case 0, plus
+  // a signed root over case 0's root (test key), encoded to the 427-byte payload and Base45. The M8 scanner must
+  // decode it, verify the proof against verification_key.json, and recover `signer` from the signature.
+  const case0 = JSON.parse(readFileSync("../fixtures/vectors.json", "utf8")).cases[0];
+  const qrRoot: SignedRootFields = {
+    ...fields,
+    rootId: 9,
+    root: zeroPadValue(toBeHex(BigInt(case0.root)), 32),
+  };
+  const qrSig = await signRoot(wallet, qrRoot);
+  const payload: QrPayload = {
+    zoneClass: case0.zoneClass,
+    epochId: case0.epochId,
+    nullifier: BigInt(case0.nullifier),
+    proof: case0.proof,
+    issuer: qrRoot.issuer,
+    rootId: qrRoot.rootId,
+    root: qrRoot.root,
+    issuedAt: qrRoot.issuedAt,
+    expiresAt: qrRoot.expiresAt,
+    signature: qrSig,
+  };
+  const bytes = encodeQrPayload(payload);
+  const qr = {
+    note:
+      "SPEC §3.4 QR vector: fixture case 0's real proof + a signed root over case 0's root (TEST-ONLY key pk=1). " +
+      "G2 is EIP-197 order (x.c1, x.c0, y.c1, y.c0). publicSignals are what the scanner verifies (SPEC §4 order).",
+    signedRoot: { fields: qrRoot, signature: qrSig, signer: wallet.address },
+    zoneClass: payload.zoneClass,
+    epochId: payload.epochId,
+    nullifier: payload.nullifier.toString(),
+    proof: payload.proof,
+    publicSignals: qrPublicSignals(payload),
+    payloadBytes: bytes.length,
+    payloadHex: bytesToHex(bytes),
+    base45: qrEncode(payload),
+  };
+  if (qr.publicSignals.join() !== case0.publicSignals.join()) throw new Error("QR public signals != fixture case 0");
+  writeFileSync("../fixtures/qr-vectors.json", JSON.stringify(qr, null, 2) + "\n");
+  console.log(`wrote fixtures/qr-vectors.json (${qr.base45.length} Base45 chars)`);
   process.exit(0);
 }
 

@@ -34,6 +34,6 @@ for (const f of ["pass.wasm", "pass_final.zkey", "verification_key.json"]) {
 }
 
 // 3. Shared fixtures for the instrumented test.
-copyFileSync("fixtures/vectors.json", `${ASSETS}/vectors.json`);
+for (const f of ["vectors.json", "qr-vectors.json", "sign-vectors.json"]) copyFileSync(`fixtures/${f}`, `${ASSETS}/${f}`);
 
-console.log(`assets prepared in ${WWW} and ${ASSETS}/vectors.json`);
+console.log(`assets prepared in ${WWW} and ${ASSETS} (vectors, qr-vectors, sign-vectors)`);

@@ -14,12 +14,16 @@ import xyz.unlink.passenger.prover.WebAppEngine
 /** The phone's Poseidon and LeanIMT must match fixtures/vectors.json exactly (invariant 5). */
 @RunWith(AndroidJUnit4::class)
 class ProtocolEngineTest {
+    // Keeps the test process in the foreground: some OEM builds (vivo) freeze a process with no visible activity
+    // about 10 s after start, which would stall long on-device proofs.
+    @get:org.junit.Rule val foreground = androidx.test.ext.junit.rules.ActivityScenarioRule(xyz.unlink.passenger.ui.QrActivity::class.java)
+
 
     @Test
     fun poseidonAndTreeMatchFixtures() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val vectors = JSONObject(context.assets.open("vectors.json").bufferedReader().use { it.readText() })
-        val protocol = ProtocolEngine(WebAppEngine.create(context))
+        val protocol = ProtocolEngine(WebAppEngine.shared(context))
 
         val poseidon = vectors.getJSONObject("poseidon")
         for (n in 1..3) {

@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit -p .",
     "bench": "tsx scripts/bench.ts",
     "fixtures": "tsx scripts/make-fixtures.ts",
-    "verify-artifacts": "tsx scripts/verify-artifacts.ts"
+    "verify-artifacts": "tsx scripts/verify-artifacts.ts",
+    "verify-qr": "tsx scripts/verify-qr.ts"
   },
   "dependencies": {
     "@zk-kit/binary-merkle-root.circom": "2.0.0",

@@ -90,7 +90,13 @@ Load these files on demand only; don't read them all every session:
 #            cd issuer && npm run publish-root           (Arkiv batches/revocations -> postRoot on Sepolia via publicnode -> Arkiv SignedRoot)
 # arkiv:     cd issuer && npm run arkiv-roundtrip        (REAL Rabdi + Sepolia: publish, read back, rebuild == signed == on-chain root)
 #            cd issuer && npm run arkiv-expiry           (2-minute entity, gone after its expiry block; ~2.5 min)
-# apps:      ./gradlew assembleDebug   (inside each app)
+# apps:      cd apps/passenger && ./gradlew :app:assembleDebug   (JAVA_HOME = JDK 21 root; local.properties sdk.dir)
+#            cd apps/passenger && ./gradlew :app:connectedDebugAndroidTest   (phone UNLOCKED + `adb shell svc power stayon usb`; 12 tests)
+#            node apps/passenger/prepare-assets.mjs && node apps/passenger/check-assets.mjs   (rebundle protocol.js + copy fixtures; CI check)
+#            node apps/passenger/record-arkiv.mjs   (re-record real Arkiv/Sepolia responses for RefreshTest)
+#            demo: cd issuer && npm start; adb reverse tcp:3000 tcp:3000; buy in app; POST /admin/publish-root; Refresh
+# qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
+# fixtures:  cd issuer && npm run sign-fixtures   (fixtures/sign-vectors.json + qr-vectors.json, test key pk=1)
 ```
 
 ## Working rules

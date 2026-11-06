@@ -301,6 +301,7 @@ Shared screenshots are **not** revocable. Audit can count duplicates but cannot 
 | Constraint count | < 20k | 5,697 (non-linear, 0 linear; 5 public, 24 private inputs, 0 outputs) | circom 2.2.3 `--O2` / 2026-11-05 |
 | Proving time, laptop (snarkjs 0.7.6, Node) | reference only | 957 ms median of 5 warm runs (920–994); verify 24 ms | Intel i5-8350U ×8, Node 22.13.1, Windows / 2026-11-05 |
 | Proving time, mid-range Android | < 3 s | 3,653 ms (cold first proof: WebView+snarkjs init + 3.3 MB zkey load + prove, single-thread). Warm/pre-proved proofs expected lower; lock-screen shows pre-generated proofs so this isn't on the scan path | Nothing Phone A142 (Android 16, arm64, 7.6 GB), snarkjs 0.7.6 in WebView / 2026-11-06 |
+| Proving time, pre-prove batch (warm, per proof) | < 3 s | 3,467 ms average over 13 proofs (first of the batch 3,578 ms); about 45 s for the whole 2 h PREPROVE window, run after unlock, never on the scan path. The lock-screen QR opens instantly from cache | vivo Y100 V2222 (Android 15), snarkjs 0.7.6 in WebView, real root 8 / 2026-11-06 |
 | Verify latency (steps 1–10) | < 1 s | — | — |
-| QR version at level M | ≤ 20 (computed: 16) | — | — |
+| QR version at level M | ≤ 20 (computed: 16) | 16, alphanumeric mode (ZXing `Encoder` on device, 641 Base45 chars from the 427-byte payload) | vivo Y100 V2222 (Android 15), instrumented QrPayloadTest / 2026-11-06 |
 | `postRoot` gas | small | 351,411 first post (cold storage); 57,651 warm (issuer reposting). Real Sepolia receipts; Sepolia runs Pectra so these exceed the local `cancun` gas-report | Sepolia tx 0xbc44…7e32 (cold), 0x2a9b…f73d (warm, via issuer service) / 2026-11-06 |

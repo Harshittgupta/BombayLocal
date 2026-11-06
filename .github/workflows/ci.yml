@@ -42,7 +42,10 @@ jobs:
             --exclude="HANDOFF.md" --exclude="REVIEWS.md" \
             --exclude="README.md" --exclude="DEMO.md" \
             --exclude="LICENSE" \
+            --exclude="protocol.js" --exclude="snarkjs.min.js" \
             . | grep -v "issuer/src/purchase.ts" || true)
+          # protocol.js / snarkjs.min.js are generated bundles of protocol/src (grepped above) plus third-party
+          # node_modules (excluded above); @noble/curves' comments mention a constant-time "fake accumulator".
           if [ -n "$HITS" ]; then
             echo "$HITS"
             echo "::error::Found mock/fake/stub/dummy/hardcod outside allowed locations"

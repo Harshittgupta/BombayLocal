@@ -1,0 +1,30 @@
+{
+  "note": "Shared vectors for SPEC §3.3 (signed root) and §5 (scan batch). TEST-ONLY key (pk=1). EIP-191 personal_sign over getBytes(digest) (the \\n32 form). The Kotlin scanner must recompute each digest and recover `signer`.",
+  "signedRoot": {
+    "fields": {
+      "chainId": 11155111,
+      "registry": "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+      "issuer": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+      "rootId": 7,
+      "root": "0xabababababababababababababababababababababababababababababababab",
+      "issuedAt": 1793000000,
+      "expiresAt": 1793129600
+    },
+    "preimageBytes": 134,
+    "digest": "0x691cfcc1c33e40641d303ab22df745095bc6720cfde440184fc45b21bdefd0f5",
+    "eip191Signature": "0x1a3d40c4e9406ea854c153cd2fb52d51db72b91fc65838fbc29b75bf1901874f038892726f9812e81abc4235456ac7c388f03e5256b9fb0f930a610c2a42e5011b",
+    "signer": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf"
+  },
+  "scanBatch": {
+    "scannerPubKey": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+    "epochId": 2988333,
+    "nullifiersSorted": [
+      "2",
+      "5",
+      "9"
+    ],
+    "digest": "0x8de0047f693738fc3014ecea7f0936584fb322cb4682dabff6c0322098287d0d",
+    "eip191Signature": "0x98d76c55f3106c06c012d5dd4a45fd876b90c6d77c947dd9d2d87b466acfcbf3138dec02b61c859b6ca9d7327600ef6509180ace88a8cb67393d6f78b85294a41b",
+    "signer": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf"
+  }
+}

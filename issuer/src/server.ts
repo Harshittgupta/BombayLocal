@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import Fastify from "fastify";
 import { IssuerDb } from "./db.ts";
 import { loadDeployment, loadEnv, loadProducts, loadScannerAllowlist } from "./config.ts";
@@ -134,7 +135,7 @@ export async function buildServer(opts: {
 }
 
 // Entry point: `npm start`
-if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? "")) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const { app, env, log, startHeartbeat } = await buildServer();
   startHeartbeat();
   app.listen({ port: env.port, host: "0.0.0.0" }).then((addr) => log.info({ addr }, "issuer listening"));
