@@ -13,7 +13,7 @@ const log = makeLogger();
 const env = loadEnv();
 const deployment = loadDeployment();
 const products = loadProducts();
-const db = new IssuerDb("issuer.db");
+const db = new IssuerDb(env.dbPath);
 const registry = new RegistryClient(env.rpcUrl, env.issuerPrivateKey, deployment.registry);
 
 // If the tree is empty, simulate one purchase so there is a real leaf to commit to.
