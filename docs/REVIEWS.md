@@ -24,6 +24,33 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-07 · module-10b + module-11a · live demo site, BombayLocal rename + logo, README + Arkiv docs
+Commit: 04f887e (web demo), 960d393, 5ea131d, 7b7ebfd (polish, drag-aside, hashed assets), 05fd557, fa1f148 (rename), 6f7a4e5 (logo), ff3f131, fc821f7 (README, Arkiv files, quickstart fix)  (pushed: yes; CI + Demo site green; releases v0.9.0–v0.9.2 built by Actions)
+Reviewer: hostile-reviewer subagent, fresh context, on f418a79..fc821f7; it checked web/src/verifier.ts line by line against OfflineVerifier.kt (no divergence) and re-ran web tests (74/74)
+Evidence: fresh clone of fc821f7 following the README only: protocol 42/42, circuits 40/40, issuer 30/30, web 74/74 + build, contracts 21/21, both APKs (after adding ANDROID_HOME to the Quickstart), check-audit 9/9 PASS. Live e2e of the site's code (web/scripts/e2e-live.ts): real purchase → auto-published root #14 → ready in 63 s, proof 1,307 ms, QR 16-M decoded from pixels, Green/Amber/Red in ~50 ms with 0 page requests. Live: site 200 at /BombayLocal/, audit 200, both issuer names 200 with their own certificates, CORS preflight 204 only for the demo origin.
+Findings:
+- [MAJOR] release APKs are debuggable debug builds (a person holding an unlocked phone with USB debugging could inspect the prover) → disclosed in README limitations; a signed non-debuggable release needs a CI signing key (user decision)
+- [MINOR, fixed because invariant 7] honesty: browser proof time was a Node measurement (relabelled + SPEC §10 row); issuer's in-memory rate-limit IP now stated in README + why-arkiv; scan queue 24 h stated; audit reader path; page said "everything is real" (now: only the payment is simulated); request counter labelled fetch/XHR
+- [MINOR, fixed] web scanner never re-synced (now every 30 min with rollback guards: floor never down, suspension sticky, rootId never back); web passenger never refreshed its root (now refreshes a root within 2 h of expiry before proving)
+- [MINOR, fixed] CLAUDE.md fixture count 69 → 73
+Fixed in: f7616ff, plus this commit (CLAUDE.md)
+Not fixed (deliberate): CORS origin harshittgupta.github.io covers every Pages repo of that account (browser origins have no path; the endpoint is public and rate-limited anyway); web scanner reads only CONFIG.issuer instead of looping Registry.issuers() (single-issuer demo, documented in scanner.ts)
+Still open:
+- signed, non-debuggable release APKs (needs a keystore in GitHub secrets)
+- 38 pre-fix Caddy error-log lines with IPs remain in the VM journal (purge blocked by the auto-mode classifier; user decides)
+- Arkiv public endpoint rate limits (friction #13); an access key would help the hosted issuer
+- old URL harshittgupta.github.io/Unlink/ is gone (GitHub does not redirect Pages after a rename)
+
+Rule check (rule-checker subagent):
+- R1 auditable repo ............ PASS  (no keys/.db/.env tracked; Quickstart has ANDROID_HOME; all package.json versions exact)
+- R2 commits proper + same day . PASS  (10 module-10b/11a commits 2026-11-06 23:11 → 2026-11-07 02:38, pushed, origin/main == main)
+- R3 this review logged ........ PASS  (this entry)
+- R4 two separate apps ......... PASS  (xyz.unlink.passenger / xyz.unlink.scanner, no cross-imports)
+- R5 real web3, no mocks ....... PASS  (Registry verified with 20 roots; latest root 20 on chain = Arkiv; check-audit 9 PASS; web uses real snarkjs fullProve/verify; mock grep only purchase.ts; two-RPC agreement confirmed in Syncer.kt:81-87)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariants 2, 3, 4 ........... PASS  (allowBackup=false both apps; localStorage only for the tour flag; no networking in :verifier; tracker grep clean incl. web/)
+Blockers: none
+
 ### 2026-11-06 · module-9b · ui + hosted issuer (UI rebuild, QR in notification, auto-publish, Oracle Cloud deploy)
 Commit: 6e47fb8 (UI), 2830456 (issuer auto-publish, purchase limit, deploy kit), cd4fdaf (apps default to hosted issuer), 246ffa0 (scanner allowlist), 09d36aa (deploy git ownership)  (pushed: yes)
 Reviewer: hostile-reviewer subagent, fresh context, on db0252f..09d36aa

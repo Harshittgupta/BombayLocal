@@ -136,3 +136,11 @@ Live state: root 13 (19 leaves) from the hosted issuer; scanner A142 reinstalled
 Numbers: issuer 29 tests, protocol 42, passenger device 15, scanner device 10; verify unchanged (~50–78 ms).
 Open: 38 pre-fix Caddy error-log lines with IPs still in VM journald (purge needs the user's OK); Arkiv public endpoint rate limits (get ARKIV_ACCESS_KEY); 7-day idle reclamation on Oracle; user to confirm notification/lock-screen scans + crop.
 Next: module-10 (integration: preflight, demo-setup, DEMO.md, 3 rehearsals) — /clear, then /model sonnet, /effort medium; then the web demo (two-phone simulator page + APK download QRs) as module-10b.
+
+## module-10b + 11a · live demo, BombayLocal rename, docs · 2026-11-07 02:45 · commits 04f887e … fc821f7, f7616ff
+Exists: web/ (two-phone demo: browser passenger + offline browser scanner held to all 73 fixtures/qr; drag-to-scan with jsQR; first-visit tour; APK download QRs) built by web/build.mjs and deployed by .github/workflows/pages.yml to https://harshittgupta.github.io/BombayLocal/ (audit at /audit/). release.yml builds both APKs on v* tags (latest v0.9.2, with icons). Issuer CORS for the demo origin only (issuer/src/cors.ts).
+Rename: project is BombayLocal (repo Harshittgupta/BombayLocal; issuer https://bombaylocal-issuer.duckdns.org, the VM also still serves unlink-issuer.duckdns.org). npm scope @bombaylocal/*, browser global bombaylocalProtocol. Kept on purpose: UNLINK-ROOT-v1, Arkiv 'unlink.*' tags, package IDs xyz.unlink.*, Registry.sol, pass.circom, VM paths/unit names.
+Docs: README rewritten (≤1,000 words, docs/architecture.png), arkiv/why-arkiv.md, how-you-use-arkiv.md, reach.md, friction #13. Fresh clone of fc821f7 passes every Quickstart step. Logos: launcher icons, ic_stat_pass, site wordmark/favicons, audit badge, README banner.
+Numbers: web e2e ready in 63 s, proof 1.3 s (laptop), check ~50 ms with 0 requests. Live: 25 passes, roots up to #20, 46 issuer Arkiv writes, 20 postRoot txs.
+Open: signed non-debuggable release APKs; Caddy journal IP lines (user decision); Arkiv access key; old /Unlink/ Pages URL gone.
+Next: module-11b (judge pass + docs/QA.md) — /clear, then /model opus, /effort high; then 11c (video, release, submission).

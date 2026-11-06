@@ -105,7 +105,7 @@ Load these files on demand only; don't read them all every session:
 #            cd web && npm run e2e   (LIVE: buys 1 real day pass on the hosted issuer, waits for auto-publish, proves, decodes the QR pixels, scans Green/Amber/Red with 0 requests)
 #            release: git tag vX.Y.Z && git push origin vX.Y.Z   (release.yml builds both APKs; the site's download QRs use releases/latest)
 # fixtures:  cd issuer && npm run sign-fixtures   (fixtures/sign-vectors.json + qr-vectors.json, test key pk=1)
-#            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 69 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
+#            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 73 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
 # scanner:   cd apps/scanner && ./gradlew :verifier:test   (JVM; all fixtures/qr + vectors + NoNetworkTest; needs circuits npm ci for snarkjs)
 #            node apps/scanner/prepare-assets.mjs && node apps/scanner/check-assets.mjs   (snarkjs + vk + fixtures into the app; CI check)
 #            cd apps/scanner && ./gradlew :app:assembleDebug :app:connectedDebugAndroidTest   (7 tests: fixtures via Room, key, purge/queue, LIVE sync; logcat -s BombayLocalLatency)
