@@ -90,7 +90,16 @@ function onStep(s: Step): void {
 const passenger = new Passenger(onStep, (line) => log(line));
 
 function show(view: "vBuy" | "vWait" | "vPass"): void {
-  for (const v of ["vBuy", "vWait", "vPass"]) $(v).hidden = v !== view;
+  for (const v of ["vBuy", "vWait", "vPass"]) {
+    const el = $(v);
+    const was = el.hidden;
+    el.hidden = v !== view;
+    if (was && !el.hidden) {
+      el.classList.remove("enter");
+      void el.offsetWidth; // restart the entrance animation
+      el.classList.add("enter");
+    }
+  }
 }
 
 for (const b of document.querySelectorAll<HTMLButtonElement>(".product")) {
@@ -104,7 +113,16 @@ for (const b of document.querySelectorAll<HTMLButtonElement>(".product")) {
   });
 }
 
+/** Start downloading the circuit files while the issuer publishes, so the proof is ready sooner. */
+let prefetched = false;
+function prefetchCircuit(): void {
+  if (prefetched) return;
+  prefetched = true;
+  for (const f of ["zk/pass.wasm", "zk/pass_final.zkey"]) void fetch(f).then((r) => r.arrayBuffer()).catch(() => undefined);
+}
+
 async function buy(): Promise<void> {
+  prefetchCircuit();
   $("buyError").hidden = true;
   show("vWait");
   resetSteps();
@@ -209,7 +227,13 @@ function showVerdict(c: Check): void {
     lastSeen = Date.now();
     return;
   }
+  const again = !v.hidden;
   v.className = `verdict ${r.status}`;
+  if (again) { void v.offsetWidth; v.classList.add("again"); } // restart the flash for each new showing
+  const path = $("glyphPath");
+  path.style.animation = "none";
+  void path.getBoundingClientRect(); // restart the glyph stroke animation for this showing
+  path.style.animation = "";
   $("glyphPath").setAttribute("d", GLYPH[r.status]);
   $("vTitle").textContent = title(r.reason);
   $("vDetail").textContent = r.warnings.slice(1).map(title).join(" · ");
@@ -229,26 +253,39 @@ function showVerdict(c: Check): void {
 }
 setInterval(() => { if (!$("verdict").hidden && Date.now() - lastSeen >= 2_000) $("verdict").hidden = true; }, 200);
 
-/** The scanner's camera: copies whatever part of the pass QR is under the scanner screen, then decodes it. */
+/**
+ * The scanner's camera: copies whatever part of the pass QR is under the scanner screen, then decodes it. The cheap
+ * rectangle test runs first; pixels are only drawn when something changed, and only decoded when the whole code is
+ * in view (a partial code can't read, exactly like a real camera).
+ */
+let camBlank = false;
+function blankCamera(): void {
+  if (camBlank) return;
+  camCtx.fillStyle = "#000";
+  camCtx.fillRect(0, 0, cam.width, cam.height);
+  camBlank = true;
+}
+
 function capture(full: boolean): string | null {
   const scr = $("sScreen").getBoundingClientRect();
   const qrEl = $<HTMLCanvasElement>("qrCanvas");
   const k = 2; // camera resolution: 2 px per CSS px
-  if (cam.width !== Math.round(scr.width * k)) { cam.width = Math.round(scr.width * k); cam.height = Math.round(scr.height * k); }
+  if (cam.width !== Math.round(scr.width * k)) { cam.width = Math.round(scr.width * k); cam.height = Math.round(scr.height * k); camBlank = false; }
+  if ($("vPass").hidden || !$("qrBusy").hidden) { blankCamera(); return null; }
+  const q = qrEl.getBoundingClientRect();
+  const x0 = Math.max(scr.left, q.left), y0 = Math.max(scr.top, q.top);
+  const x1 = Math.min(scr.right, q.right), y1 = Math.min(scr.bottom, q.bottom);
+  if (!full && (x1 <= x0 || y1 <= y0)) { blankCamera(); return null; }
   camCtx.fillStyle = "#000";
   camCtx.fillRect(0, 0, cam.width, cam.height);
-  if ($("vPass").hidden || !$("qrBusy").hidden) return null;
-  const q = qrEl.getBoundingClientRect();
-  const sx = qrEl.width / q.width;
+  camBlank = false;
   camCtx.imageSmoothingEnabled = false;
   if (full) {
     // Small screens: the Scan button points the camera straight at the code.
     const side = Math.min(cam.width, cam.height) * 0.8;
     camCtx.drawImage(qrEl, (cam.width - side) / 2, (cam.height - side) / 2.2, side, side);
   } else {
-    const x0 = Math.max(scr.left, q.left), y0 = Math.max(scr.top, q.top);
-    const x1 = Math.min(scr.right, q.right), y1 = Math.min(scr.bottom, q.bottom);
-    if (x1 <= x0 || y1 <= y0) return null;
+    const sx = qrEl.width / q.width;
     camCtx.drawImage(qrEl, (x0 - q.left) * sx, (y0 - q.top) * sx, (x1 - x0) * sx, (y1 - y0) * sx,
       (x0 - scr.left) * k, (y0 - scr.top) * k, (x1 - x0) * k, (y1 - y0) * k);
     if ((x1 - x0) * (y1 - y0) < 0.9 * q.width * q.height) return null; // only part of the code is in view
@@ -269,29 +306,72 @@ async function scanOnce(full: boolean): Promise<void> {
   }
 }
 
-setInterval(() => { if (!small.matches) void scanOnce(false); }, 200);
+// Camera loop: one frame every ~150 ms, and only while the scanner phone is moving or resting over the code.
+let camActive = false;
+let lastFrame = 0;
+function camLoop(t: number): void {
+  if (!camActive) return;
+  if (t - lastFrame >= 150) {
+    lastFrame = t;
+    void scanOnce(false);
+  }
+  requestAnimationFrame(camLoop);
+}
+function wakeCamera(): void {
+  if (camActive || small.matches) return;
+  camActive = true;
+  requestAnimationFrame(camLoop);
+}
+function sleepCamera(): void {
+  camActive = false;
+  blankCamera();
+}
 $("scanBtn").addEventListener("click", () => void scanOnce(true));
 
-// Drag the scanner phone (pointer events; the stage is the drag area).
+// Drag the scanner phone over the pass. When you let go it glides back to its place, like putting the phone down.
 const scanEl = $("scanner");
-let drag: { x: number; y: number; dx: number; dy: number } | null = null;
-let offset = { x: 0, y: 0 };
+let drag: { x: number; y: number } | null = null;
+let pending: { x: number; y: number } | null = null;
+let moveQueued = false;
+
+function applyMove(): void {
+  moveQueued = false;
+  if (pending) scanEl.style.transform = `translate3d(${pending.x}px, ${pending.y}px, 0)`;
+}
+
 scanEl.addEventListener("pointerdown", (e) => {
-  if (small.matches || (e.target as HTMLElement).closest("button")) return;
-  drag = { x: e.clientX, y: e.clientY, dx: offset.x, dy: offset.y };
+  if (small.matches || (e.target as HTMLElement).closest("button") || e.button > 0) return;
+  scanEl.classList.remove("returning");
+  drag = { x: e.clientX, y: e.clientY };
   scanEl.setPointerCapture(e.pointerId);
   scanEl.classList.add("dragging");
+  document.querySelector(".hint-arrow")?.classList.add("used");
+  wakeCamera();
 });
 scanEl.addEventListener("pointermove", (e) => {
   if (!drag) return;
-  offset = { x: drag.dx + e.clientX - drag.x, y: drag.dy + e.clientY - drag.y };
-  scanEl.style.transform = `translate(${offset.x}px, ${offset.y}px)`;
+  pending = { x: e.clientX - drag.x, y: e.clientY - drag.y };
+  if (!moveQueued) { moveQueued = true; requestAnimationFrame(applyMove); }
   tour.on("dragging");
 });
-const endDrag = () => { drag = null; scanEl.classList.remove("dragging"); };
+const endDrag = () => {
+  if (!drag) return;
+  const moved = scanEl.style.transform !== "" || pending !== null;
+  drag = null;
+  pending = null;
+  scanEl.classList.remove("dragging");
+  scanEl.style.transform = "";
+  if (moved) scanEl.classList.add("returning");
+  else sleepCamera(); // a click without a drag: nothing to animate back
+};
 scanEl.addEventListener("pointerup", endDrag);
 scanEl.addEventListener("pointercancel", endDrag);
-small.addEventListener("change", () => { offset = { x: 0, y: 0 }; scanEl.style.transform = ""; });
+scanEl.addEventListener("transitionend", (e) => {
+  if (e.propertyName !== "transform" || drag) return;
+  scanEl.classList.remove("returning");
+  sleepCamera();
+});
+small.addEventListener("change", () => { drag = null; scanEl.style.transform = ""; scanEl.classList.remove("dragging", "returning"); sleepCamera(); });
 
 // ---------------- downloads ----------------
 
