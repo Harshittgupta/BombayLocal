@@ -70,3 +70,15 @@ Format per entry: Expected / Actual / Repro / Suggestion.
 - **Actual:** `InvalidExpiryError: a lifetime must be a multiple of the 2s block time, got 133187`. It is thrown at write time, so in our flow it fired AFTER the on-chain `postRoot`, which left root 4 on Sepolia with no SignedRoot on Arkiv. Our first live run passed only because that lifetime happened to be even.
 - **Repro:** `ExpirationTime.fromSeconds(133187)`.
 - **Suggestion:** round up by default, or add `{ round: "up" }`, and state the multiple-of-block rule on the expiration page. (Our fix: `lifetimeSeconds()` rounds up, and the publisher re-publishes a missing SignedRoot for the latest root on the next run.)
+
+## 13. The public endpoint rate-limits phones hard, with no keyed URL for non-SDK clients
+- **Expected:** a clear rate limit we can design around, and a keyed endpoint the Android apps can use (they read
+  Arkiv over raw JSON-RPC, not the JS SDK).
+- **Actual:** while two phones on one network ran our live-sync tests at the same time (2026-11-06), Arkiv calls from
+  the phones failed: HTTP 429 on the passenger, failed `arkiv_query` reads on the scanner. The laptop on another
+  network was unaffected, and the phones recovered after about 5 minutes. No error body says which limit was hit or
+  when to retry, and there is still no documented keyed URL for a non-SDK client (see entry 2).
+- **Repro:** run several paged `arkiv_query` reads per second from one IP for a minute
+  (`cd issuer && npm run arkiv-roundtrip` in parallel with an app refresh is enough).
+- **Suggestion:** return `Retry-After`, document the per-IP budget, and publish the keyed RPC URL format so mobile
+  clients can use an access key.
