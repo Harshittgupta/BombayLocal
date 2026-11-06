@@ -153,6 +153,26 @@ describe("Arkiv expiry (SPEC §9, blocks via seconds)", () => {
 });
 
 describe("issuer DB (M6 schema)", () => {
+  it("a revocation that fails midway leaves nothing behind (transaction rolls back)", () => {
+    const db = dbWith(2);
+    // Force the INSERT to fail after the UPDATE: occupy the next seq.
+    db.raw.prepare("INSERT INTO revocations(seq, fromIndex, count, reason, createdAt) VALUES(1, 0, 1, 'revoked', 0)").run();
+    expect(() => db.revokeLeaf(1)).toThrow();
+    expect(db.allLeaves()[1]!.revoked).toBe(0); // the UPDATE was rolled back with the failed INSERT
+    expect(db.revSeq()).toBe(0);
+    db.close();
+  });
+
+  it("recordRoot clears the pending root in the same transaction", () => {
+    const db = dbWith(1);
+    db.setPendingRoot({ root: "0x01", leafCount: 1, revSeq: 0, txHash: "0xaa" });
+    expect(db.pendingRoot()?.txHash).toBe("0xaa");
+    db.recordRoot({ rootId: 9, root: "0x01", issuedAt: 1, expiresAt: 2, leafCount: 1, revSeq: 0, signature: "0x", txHash: "0xaa" });
+    expect(db.pendingRoot()).toBeUndefined();
+    expect(db.latestRoot()?.rootId).toBe(9);
+    db.close();
+  });
+
   it("an M5 database's single-leaf revocations table is migrated in place", () => {
     const path = join(mkdtempSync(join(tmpdir(), "unlink-")), "old.db");
     const old = new DatabaseSync(path);

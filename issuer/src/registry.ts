@@ -21,9 +21,13 @@ export class RegistryClient {
     this.contract = new ethers.Contract(registryAddress, REGISTRY_ABI, this.wallet);
   }
 
-  /** Post a root on-chain, wait for the receipt, and read rootId + postedAt from the RootPosted event. */
-  async postRoot(root: string): Promise<PostRootResult> {
+  /**
+   * Post a root on-chain, wait for the receipt, and read rootId + postedAt from the RootPosted event. `onSent` gets
+   * the tx hash as soon as the tx is broadcast (the publisher records it for crash recovery).
+   */
+  async postRoot(root: string, onSent?: (txHash: string) => void): Promise<PostRootResult> {
     const tx = await this.contract.postRoot(root);
+    onSent?.(tx.hash);
     const receipt = await tx.wait();
     if (!receipt || receipt.status !== 1) throw new Error(`postRoot tx failed: ${tx.hash}`);
     for (const log of receipt.logs) {

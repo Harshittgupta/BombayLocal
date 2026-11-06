@@ -89,7 +89,8 @@ export type RootRow = {
   signature: string;
   txHash: string;
 };
-export type RevocationRow ={ seq: number; fromIndex: number; count: number; reason: "revoked" | "expired" };
+export type PendingRoot = { root: string; leafCount: number; revSeq: number; txHash?: string };
+export type RevocationRow = { seq: number; fromIndex: number; count: number; reason: "revoked" | "expired" };
 
 export class IssuerDb {
   readonly raw: DatabaseSync;
@@ -116,6 +117,43 @@ export class IssuerDb {
     this.raw.close();
   }
 
+  private depth = 0;
+
+  /** Run `fn` atomically (nested calls join the outer transaction). A throw or crash leaves no partial write. */
+  private tx<T>(fn: () => T): T {
+    if (this.depth > 0) return fn();
+    this.raw.exec("BEGIN IMMEDIATE");
+    this.depth++;
+    try {
+      const out = fn();
+      this.raw.exec("COMMIT");
+      return out;
+    } catch (e) {
+      this.raw.exec("ROLLBACK");
+      throw e;
+    } finally {
+      this.depth--;
+    }
+  }
+
+  /**
+   * The root about to be posted on-chain, recorded BEFORE postRoot. If the process dies after the tx is mined but
+   * before recordRoot, the publisher matches this against Registry.issuerState and finishes signing + recording it.
+   */
+  setPendingRoot(p: PendingRoot): void {
+    this.raw.prepare("INSERT INTO meta(key, value) VALUES('pendingRoot', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+      .run(JSON.stringify(p));
+  }
+
+  pendingRoot(): PendingRoot | undefined {
+    const row = this.raw.prepare("SELECT value FROM meta WHERE key = 'pendingRoot'").get() as { value: string } | undefined;
+    return row ? JSON.parse(row.value) : undefined;
+  }
+
+  clearPendingRoot(): void {
+    this.raw.prepare("DELETE FROM meta WHERE key = 'pendingRoot'").run();
+  }
+
   private metaGet(key: string, fallback: number): number {
     const row = this.raw.prepare("SELECT value FROM meta WHERE key = ?").get(key) as { value: string } | undefined;
     return row ? Number(row.value) : fallback;
@@ -128,14 +166,16 @@ export class IssuerDb {
 
   /** Append a new leaf and record the purchase. Returns the new leafIndex. */
   appendLeaf(product: string, leaf: string, validUntilDay: number): number {
-    const leafIndex = this.metaGet("nextLeafIndex", 0);
-    const now = Math.floor(Date.now() / 1000);
-    this.raw.prepare("INSERT INTO leaves(leafIndex, leaf, validUntilDay, revoked) VALUES(?, ?, ?, 0)")
-      .run(leafIndex, leaf, validUntilDay);
-    this.raw.prepare("INSERT INTO purchases(product, createdAt, leafIndex) VALUES(?, ?, ?)")
-      .run(product, now, leafIndex);
-    this.metaSet("nextLeafIndex", leafIndex + 1);
-    return leafIndex;
+    return this.tx(() => {
+      const leafIndex = this.metaGet("nextLeafIndex", 0);
+      const now = Math.floor(Date.now() / 1000);
+      this.raw.prepare("INSERT INTO leaves(leafIndex, leaf, validUntilDay, revoked) VALUES(?, ?, ?, 0)")
+        .run(leafIndex, leaf, validUntilDay);
+      this.raw.prepare("INSERT INTO purchases(product, createdAt, leafIndex) VALUES(?, ?, ?)")
+        .run(product, now, leafIndex);
+      this.metaSet("nextLeafIndex", leafIndex + 1);
+      return leafIndex;
+    });
   }
 
   /** Revoke one pass (refund, lost phone, fraud). Returns the revocation seq; the current seq if already revoked. */
@@ -150,15 +190,17 @@ export class IssuerDb {
 
   /** Set leaves [fromIndex, fromIndex+count) to 0 under the next revocation seq (SPEC §3.1 Revocation). */
   revokeRange(fromIndex: number, count: number, reason: "revoked" | "expired"): number {
-    const { n } = this.raw.prepare("SELECT count(*) AS n FROM leaves WHERE leafIndex >= ? AND leafIndex < ?")
-      .get(fromIndex, fromIndex + count) as { n: number };
-    if (count < 1 || n !== count) throw new Error("revocation range is not all issued leaves");
-    const seq = this.metaGet("revSeq", 0) + 1;
-    this.raw.prepare("UPDATE leaves SET revoked = 1 WHERE leafIndex >= ? AND leafIndex < ?").run(fromIndex, fromIndex + count);
-    this.raw.prepare("INSERT INTO revocations(seq, fromIndex, count, reason, createdAt) VALUES(?, ?, ?, ?, ?)")
-      .run(seq, fromIndex, count, reason, Math.floor(Date.now() / 1000));
-    this.metaSet("revSeq", seq);
-    return seq;
+    return this.tx(() => {
+      const { n } = this.raw.prepare("SELECT count(*) AS n FROM leaves WHERE leafIndex >= ? AND leafIndex < ?")
+        .get(fromIndex, fromIndex + count) as { n: number };
+      if (count < 1 || n !== count) throw new Error("revocation range is not all issued leaves");
+      const seq = this.metaGet("revSeq", 0) + 1;
+      this.raw.prepare("UPDATE leaves SET revoked = 1 WHERE leafIndex >= ? AND leafIndex < ?").run(fromIndex, fromIndex + count);
+      this.raw.prepare("INSERT INTO revocations(seq, fromIndex, count, reason, createdAt) VALUES(?, ?, ?, ?, ?)")
+        .run(seq, fromIndex, count, reason, Math.floor(Date.now() / 1000));
+      this.metaSet("revSeq", seq);
+      return seq;
+    });
   }
 
   /**
@@ -166,6 +208,10 @@ export class IssuerDb {
    * retried publish re-sends exactly the same batch. Returns the new batch rows.
    */
   batchNewLeaves(max: number): BatchRow[] {
+    return this.tx(() => this.batchNewLeavesTx(max));
+  }
+
+  private batchNewLeavesTx(max: number): BatchRow[] {
     const last = this.raw.prepare("SELECT batchNo, fromIndex, count FROM arkiv_batches ORDER BY batchNo DESC LIMIT 1")
       .get() as { batchNo: number; fromIndex: number; count: number } | undefined;
     let batchNo = last ? last.batchNo + 1 : 0;
@@ -203,11 +249,13 @@ export class IssuerDb {
   zeroExpiredBatches(today: number): number[] {
     const due = this.raw.prepare("SELECT * FROM arkiv_batches WHERE zeroed = 0 AND lastValidDay < ? ORDER BY batchNo")
       .all(today) as BatchRow[];
-    return due.map((b) => {
-      const seq = this.revokeRange(b.fromIndex, b.count, "expired");
-      this.raw.prepare("UPDATE arkiv_batches SET zeroed = 1 WHERE batchNo = ?").run(b.batchNo);
-      return seq;
-    });
+    return due.map((b) =>
+      this.tx(() => {
+        const seq = this.revokeRange(b.fromIndex, b.count, "expired");
+        this.raw.prepare("UPDATE arkiv_batches SET zeroed = 1 WHERE batchNo = ?").run(b.batchNo);
+        return seq;
+      }),
+    );
   }
 
   markBatchPublished(batchNo: number): void {
@@ -254,9 +302,12 @@ export class IssuerDb {
     signature: string;
     txHash: string;
   }): void {
-    this.raw.prepare(
-      "INSERT INTO roots(rootId, root, issuedAt, expiresAt, leafCount, revSeq, signature, txHash) VALUES(?,?,?,?,?,?,?,?)",
-    ).run(r.rootId, r.root, r.issuedAt, r.expiresAt, r.leafCount, r.revSeq, r.signature, r.txHash);
+    this.tx(() => {
+      this.raw.prepare(
+        "INSERT INTO roots(rootId, root, issuedAt, expiresAt, leafCount, revSeq, signature, txHash) VALUES(?,?,?,?,?,?,?,?)",
+      ).run(r.rootId, r.root, r.issuedAt, r.expiresAt, r.leafCount, r.revSeq, r.signature, r.txHash);
+      this.clearPendingRoot();
+    });
   }
 
   /** Store a scanner's nullifiers for an epoch; returns how many were already present (cross-scanner duplicates). */

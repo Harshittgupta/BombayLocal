@@ -41,8 +41,32 @@ export async function publishRoot(ctx: PublisherCtx): Promise<PublishResult> {
   }
   if (arkiv.address.toLowerCase() !== issuer) throw new Error(`Arkiv writer ${arkiv.address} != deployment.issuer`);
 
-  // Heal: if a previous run crashed between postRoot and step 4, that root is on chain but its SignedRoot is not on
-  // Arkiv, so phones cannot move to it. Re-publish it (idempotent: an identical existing entity is reused).
+  // Recover: a previous run died after its postRoot tx was mined but before recordRoot. The root we were posting
+  // is in pendingRoot; if it is the issuer's on-chain latest, sign it with the on-chain rootId/postedAt and record it.
+  const pending = db.pendingRoot();
+  if (pending) {
+    const state = await registry.issuerState(deployment.issuer);
+    const recorded = db.latestRoot()?.rootId ?? 0;
+    if (state.latestRootId > recorded && state.latestRoot.toLowerCase() === pending.root.toLowerCase()) {
+      const f = {
+        chainId: deployment.chainId,
+        registry: deployment.registry,
+        issuer: deployment.issuer,
+        rootId: state.latestRootId,
+        root: pending.root,
+        issuedAt: state.latestPostedAt,
+        expiresAt: expiresAtFor(state.latestPostedAt),
+      };
+      const signature = await signRoot(registry.wallet, f);
+      db.recordRoot({ ...f, leafCount: pending.leafCount, revSeq: pending.revSeq, signature, txHash: pending.txHash ?? "" });
+      log.warn({ rootId: f.rootId }, "recovered an on-chain root a crashed run did not record");
+    } else {
+      db.clearPendingRoot(); // that tx never landed (or a later root superseded it)
+    }
+  }
+
+  // Heal: if a previous run crashed between recordRoot and step 4, the latest root is on chain and recorded but its
+  // SignedRoot is not on Arkiv, so phones cannot move to it. Re-publish it (idempotent: an identical entity is reused).
   const prev = db.latestRoot();
   if (prev) {
     await arkiv.publishSignedRoot({
@@ -82,7 +106,10 @@ export async function publishRoot(ctx: PublisherCtx): Promise<PublishResult> {
   }
 
   // (2) on-chain root, (3) sign with the on-chain rootId and postedAt.
-  const { rootId, postedAt, txHash } = await registry.postRoot(root);
+  db.setPendingRoot({ root, leafCount, revSeq });
+  const { rootId, postedAt, txHash } = await registry.postRoot(root, (hash) =>
+    db.setPendingRoot({ root, leafCount, revSeq, txHash: hash }),
+  );
   const issuedAt = postedAt;
   const expiresAt = expiresAtFor(issuedAt);
   const fields = {

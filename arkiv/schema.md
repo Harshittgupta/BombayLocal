@@ -31,9 +31,9 @@ on-chain `issuerState`. A rebuilt tree that does not hash to the signed root is 
 Expiry is set in **blocks** (2 s each) through `ExpirationTime.fromSeconds(...)`. Every lifetime is ≥ 1 h and ≤ ~182.5 d (Arkiv's max); `MAX_PASS_DAYS` = 90 keeps a 90-day pass's batch well inside that.
 
 ## Why these entities
-- **Leaves are public, holders are not.** A leaf is `Poseidon3(idCommitment, validUntilDay, zoneClass)`: a hiding commitment. Arkiv shows only how many passes were sold and when.
+- **Leaves are public, holders are not.** A leaf is `Poseidon3(idCommitment, validUntilDay, zoneClass)`: a hiding commitment. Arkiv shows how many passes were sold and when. A batch's `lastValidDay` also reveals the longest validity in that batch, so a batch holding a single pass reveals that pass's product. It never reveals who bought it.
 - **Expiry does the cleanup.** A batch is zeroed with an `expired` Revocation on day D+1, then drops off Arkiv at the end of D+2. Phones never need a gone batch; positions with no live batch rebuild as 0. Download stays proportional to *live* passes.
-- **Idempotent writes.** Before each write the issuer queries for the same `batchNo` / `seq` / `rootId` / `listNo` / `vkSha256` (with creator = owner = itself). An identical entity is reused; a different one is an error, never a second entity.
+- **Idempotent writes.** Before each write the issuer queries for the same `batchNo` / `seq` / `rootId` / `listNo` / `vkSha256` (with creator = owner = itself). An identical entity is reused; a different one is an error. A create that times out and is retried can still leave two *byte-identical* entities; readers collapse those (SPEC §3.1 step 2).
 
 ## Publishing order (issuer, SPEC §3.1)
 1. new `LeafBatch`es and `Revocation`s → 2. `Registry.postRoot(root)` on Sepolia → 3. sign with the on-chain `rootId`/`postedAt` → 4. `SignedRoot`.
