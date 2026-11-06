@@ -19,6 +19,11 @@ class Settings(context: Context) {
         get() = p.getString("issuerUrl", null) ?: BuildConfig.ISSUER_URL_DEFAULT
         set(v) = p.edit().putString("issuerUrl", v.trim().trimEnd('/')).apply()
 
+    /** Show decode and verify time on the result screen (also toggled by a long-press on the status chip). */
+    var showLatency: Boolean
+        get() = p.getBoolean("showLatency", false)
+        set(v) = p.edit().putBoolean("showLatency", v).apply()
+
     /** Minimum fare class this checkpoint accepts (0 2nd, 1 1st, 2 AC), or null for any. */
     var requiredClass: Int?
         get() = p.getInt("requiredClass", -1).takeIf { it >= 0 }

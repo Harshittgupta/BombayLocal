@@ -11,13 +11,16 @@ import xyz.unlink.passenger.ui.PassNotification
 import xyz.unlink.passenger.work.EpochScheduler
 
 /**
- * App start: the lock-screen notification channel, the hourly/daily jobs, and an unlock listener. Each unlock tops up
- * the proof cache (SPEC §6: pre-prove after the device is unlocked) and, when online, first tries a refresh.
+ * App start: the lock-screen notification channel, the hourly/daily jobs, and a screen-on/unlock listener. Screen-on
+ * re-posts the notification with the current epoch's code. Each unlock also tops up the proof cache (SPEC §6:
+ * pre-prove after the device is unlocked) and, when online, first tries a refresh.
  */
 class UnlinkApp : Application() {
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            // Screen on or unlocked: show the current epoch's code in the notification before anyone looks at it.
+            PassNotification.update(context)
             if (intent.action != Intent.ACTION_USER_PRESENT) return
             // SPEC §3.1 / §8: refresh on unlock at most once per ROOT_INTERVAL (limits what RPC providers see);
             // otherwise just top up the proof cache.
@@ -32,7 +35,9 @@ class UnlinkApp : Application() {
         PassNotification.createChannel(this)
         EpochScheduler.schedulePeriodic(this)
         ContextCompat.registerReceiver(
-            this, unlockReceiver, IntentFilter(Intent.ACTION_USER_PRESENT), ContextCompat.RECEIVER_NOT_EXPORTED,
+            this, unlockReceiver,
+            IntentFilter(Intent.ACTION_USER_PRESENT).apply { addAction(Intent.ACTION_SCREEN_ON) },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
         )
     }
 }

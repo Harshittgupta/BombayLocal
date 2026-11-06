@@ -5,6 +5,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // The live Sepolia deployment and the circuit manifest are the single sources of truth for what the scanner trusts.
@@ -21,8 +22,8 @@ android {
         applicationId = "xyz.unlink.scanner"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.8.0"
+        versionCode = 2
+        versionName = "0.9.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("long", "CHAIN_ID", "${sepolia["chainId"]}L")
@@ -51,6 +52,7 @@ android {
     }
     buildFeatures {
         buildConfig = true
+        compose = true
     }
     packaging {
         resources.excludes += listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/versions/9/OSGI-INF/MANIFEST.MF", "/META-INF/DEPENDENCIES", "/META-INF/INDEX.LIST", "/META-INF/DISCLAIMER")
@@ -77,7 +79,11 @@ dependencies {
         exclude(group = "org.web3j", module = "rlp")
     }
     implementation("androidx.webkit:webkit:1.12.1")
-    implementation("androidx.activity:activity:1.9.3")
+    // UI: the same Compose pins as the passenger app (newer ones need AGP 9.1+).
+    implementation(platform("androidx.compose:compose-bom:2024.09.03"))
+    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
     // Local store (SPEC §5 step 9 nullifier log, synced issuer state, vk).
     implementation("androidx.room:room-runtime:2.8.4")
     ksp("androidx.room:room-compiler:2.8.4")

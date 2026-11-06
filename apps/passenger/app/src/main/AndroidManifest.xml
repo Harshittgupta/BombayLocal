@@ -6,6 +6,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Re-post the pass notification at each 10-minute epoch boundary. Used only if the user allows exact alarms;
+         otherwise the app falls back to an inexact alarm and never asks (see PassNotification.scheduleTick). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:name=".UnlinkApp"
@@ -15,7 +18,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:label="Unlink Pass"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.Unlink">
 
         <activity
             android:name=".MainActivity"
@@ -47,6 +50,11 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <!-- Epoch-boundary alarm: re-posts the notification with the new epoch's code. Our PendingIntent only. -->
+        <receiver
+            android:name=".ui.EpochTickReceiver"
+            android:exported="false" />
 
         <!-- WorkManager's own initializer runs as usual (default config). -->
     </application>

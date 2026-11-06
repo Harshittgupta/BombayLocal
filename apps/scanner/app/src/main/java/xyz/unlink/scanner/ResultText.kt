@@ -25,10 +25,16 @@ object ResultText {
         Reason.VERIFIER_ERROR -> "Couldn't check — scan again"
     }
 
+    /** Verdict wash. Each pairs with [textColor] at a contrast of at least 4.5:1 (white on green/red, near-black on amber). */
     fun color(status: Status): Int = when (status) {
-        Status.GREEN -> Color.rgb(0x1B, 0x8A, 0x3C)
-        Status.AMBER -> Color.rgb(0xE0, 0x8E, 0x00)
+        Status.GREEN -> Color.rgb(0x15, 0x7A, 0x33)
+        Status.AMBER -> Color.rgb(0xE8, 0xA3, 0x3D)
         Status.RED -> Color.rgb(0xC6, 0x28, 0x28)
+    }
+
+    fun textColor(status: Status): Int = when (status) {
+        Status.AMBER -> Color.rgb(0x12, 0x12, 0x12)
+        else -> Color.WHITE
     }
 
     /** "Synced 2 h ago" for the status chip. */

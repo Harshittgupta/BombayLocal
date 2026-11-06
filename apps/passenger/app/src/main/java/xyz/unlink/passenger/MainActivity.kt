@@ -2,27 +2,24 @@ package xyz.unlink.passenger
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -30,142 +27,177 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import xyz.unlink.passenger.pass.PassHistory
 import xyz.unlink.passenger.pass.PassRepository
 import xyz.unlink.passenger.pass.PassStatus
 import xyz.unlink.passenger.pass.PreProver
-import xyz.unlink.passenger.pass.Refresher
+import xyz.unlink.passenger.ui.BuyScreen
 import xyz.unlink.passenger.ui.PassNotification
+import xyz.unlink.passenger.ui.PassesScreen
 import xyz.unlink.passenger.ui.QrActivity
+import xyz.unlink.passenger.ui.SettingsScreen
+import xyz.unlink.passenger.ui.components.Products
+import xyz.unlink.passenger.ui.components.TicketIcon
+import xyz.unlink.passenger.ui.theme.Ink
+import xyz.unlink.passenger.ui.theme.Type
+import xyz.unlink.passenger.ui.theme.UnlinkTheme
 import xyz.unlink.passenger.work.EpochScheduler
 import xyz.unlink.passenger.work.Jobs
+import java.io.IOException
 
-/** Pass screen, purchase (simulated payment) and settings. Plain words only: no crypto terms on screen. */
+/**
+ * Two destinations, Buy and Passes, plus a Settings route. Opens on Passes when a pass exists, on Buy otherwise.
+ * Plain words only: no crypto terms on screen. The purchase uses a simulated payment, said next to the button.
+ */
 class MainActivity : ComponentActivity() {
 
+    private enum class Route { BUY, PASSES, SETTINGS }
+
     private var tick by mutableIntStateOf(0)
+    private var busy by mutableStateOf<String?>(null)
+    private var buyError by mutableStateOf<String?>(null)
+    private var route by mutableStateOf<Route?>(null)
+
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         PassNotification.update(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-        setContent { MaterialTheme { Screen() } }
+        route = if (PassRepository(this).pass() != null) Route.PASSES else Route.BUY
+        setContent { UnlinkTheme { App() } }
         refresh() // on app open (SPEC §3.1), then pre-prove
     }
 
-    private fun refresh() {
-        lifecycleScope.launch {
-            busy = "Updating…"
-            runCatching { Jobs.refresh(this@MainActivity) }
-            busy = "Preparing your pass…"
-            runCatching { Jobs.preprove(this@MainActivity) }
-            busy = null
-            PassNotification.update(this@MainActivity)
-            tick++
-        }
+    override fun onResume() {
+        super.onResume()
+        PassNotification.update(this) // the code may have changed while we were away
+        tick++
     }
 
-    private var busy by mutableStateOf<String?>(null)
-    private var error by mutableStateOf<String?>(null)
+    private fun refresh() {
+        lifecycleScope.launch { refreshOnce() }
+    }
+
+    private suspend fun refreshOnce() {
+        busy = "Updating…"
+        runCatching { Jobs.refresh(this@MainActivity) }
+        busy = "Preparing your pass…"
+        runCatching { Jobs.preprove(this@MainActivity) }
+        busy = null
+        PassNotification.update(this@MainActivity)
+        tick++
+    }
+
+    /**
+     * Right after a purchase the new pass is not in any on-chain root yet; the issuer auto-publishes one within about a
+     * minute. Check back a few times while this screen is open, so the pass turns ready without tapping Refresh.
+     */
+    private suspend fun refreshUntilActive() {
+        refreshOnce()
+        for (waitMs in longArrayOf(45_000, 45_000, 60_000, 60_000)) {
+            if (PassRepository(this).lastRefresh()?.status != PassStatus.WAITING) return
+            delay(waitMs)
+            refreshOnce()
+        }
+    }
 
     private fun buy(product: String) {
         lifecycleScope.launch {
             busy = "Buying…"
-            error = null
+            buyError = null
+            val old = PassRepository(this@MainActivity).pass()
             try {
                 Jobs.buy(this@MainActivity, product)
+                if (old != null) runCatching { PassHistory(this@MainActivity).recordReplaced(old) }
+                route = Route.PASSES
             } catch (e: Exception) {
-                error = "Purchase failed. Is the issuer reachable? (${e.javaClass.simpleName})"
+                buyError = buyErrorText(e)
             }
             busy = null
             tick++
-            if (error == null) refresh()
+            if (buyError == null) refreshUntilActive()
         }
     }
 
+    private fun buyErrorText(e: Exception): String = when {
+        e is IOException && e.message?.startsWith("HTTP ") == true ->
+            "The issuer turned the purchase down (${e.message}). Try again in a moment."
+        e is IOException -> "Couldn't reach the issuer. Check the issuer URL in Settings and try again."
+        else -> "The purchase didn't go through (${e.javaClass.simpleName}). Try again."
+    }
+
     @Composable
-    private fun Screen() {
+    private fun App() {
         val repo = remember(tick) { PassRepository(this) }
         val pass = remember(tick) { repo.pass() }
         val root = remember(tick) { repo.rootState() }
         val last = remember(tick) { repo.lastRefresh() }
+        val history = remember(tick) { PassHistory(this).entries() }
         val epochNow = System.currentTimeMillis() / 1000 / PreProver.EPOCH
         val readyOffline = remember(tick) { root != null && repo.anyCachedProof(epochNow) != null }
-        var showSettings by remember { mutableStateOf(false) }
+        val current = route ?: Route.BUY
 
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text("Unlink Pass", style = MaterialTheme.typography.headlineSmall)
+        BackHandler(enabled = current == Route.SETTINGS) { route = Route.PASSES }
 
-            if (pass == null) {
-                Text("You don't have a pass yet.")
-            } else {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(productName(pass.product), style = MaterialTheme.typography.titleMedium)
-                        Text("Valid until ${QrActivity.formatDay(pass.validUntilDay)}")
-                        Text(className(pass.zoneClass))
-                        when (last?.status) {
-                            PassStatus.REVOKED -> Text("Pass revoked", color = MaterialTheme.colorScheme.error)
-                            PassStatus.MISMATCH -> Text("Pass mismatch, contact the issuer", color = MaterialTheme.colorScheme.error)
-                            else -> if (readyOffline) Text("Ready offline ✓") else if (root == null) {
-                                Text("Pass activates at the next update")
-                            } else Text("Preparing…")
-                        }
-                        last?.let {
-                            Text("Last updated ${Refresher.formatTime(it.at)}", style = MaterialTheme.typography.bodySmall)
-                            if (!it.ok) Text(it.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                        }
+        Scaffold(
+            containerColor = Ink.ground,
+            bottomBar = {
+                if (current != Route.SETTINGS) {
+                    NavigationBar(containerColor = Ink.raised) {
+                        val colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Ink.text, selectedTextColor = Ink.text, indicatorColor = Ink.line,
+                            unselectedIconColor = Ink.muted, unselectedTextColor = Ink.muted,
+                        )
+                        NavigationBarItem(
+                            selected = current == Route.BUY, onClick = { route = Route.BUY }, colors = colors,
+                            icon = { Icon(Icons.Filled.ShoppingCart, contentDescription = null) },
+                            label = { Text("Buy", style = Type.label) },
+                        )
+                        NavigationBarItem(
+                            selected = current == Route.PASSES, onClick = { route = Route.PASSES }, colors = colors,
+                            icon = { Icon(TicketIcon, contentDescription = null) },
+                            label = { Text("Passes", style = Type.label) },
+                        )
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(enabled = root != null, onClick = { startActivity(Intent(this@MainActivity, QrActivity::class.java)) }) {
-                        Text("Show pass")
-                    }
-                    OutlinedButton(enabled = busy == null, onClick = { refresh() }) { Text("Refresh") }
-                }
-                if (Build.VERSION.SDK_INT >= 33) {
-                    TextButton(onClick = { addTile() }) { Text("Add \"Show pass\" to Quick Settings (works on the lock screen)") }
-                }
+            },
+        ) { padding ->
+            val m = Modifier.padding(padding)
+            when (current) {
+                Route.BUY -> BuyScreen(
+                    currentPassName = pass?.let { Products.name(it.product) },
+                    buying = busy == "Buying…",
+                    error = buyError,
+                    onBuy = ::buy,
+                    modifier = m,
+                )
+                Route.PASSES -> PassesScreen(
+                    pass = pass,
+                    hasRoot = root != null,
+                    readyOffline = readyOffline,
+                    last = last,
+                    busy = busy,
+                    history = history,
+                    onShowPass = { startActivity(Intent(this, QrActivity::class.java)) },
+                    onRefresh = { refresh() },
+                    onSettings = { route = Route.SETTINGS },
+                    onBuy = { route = Route.BUY },
+                    modifier = m,
+                )
+                Route.SETTINGS -> SettingsScreen(
+                    settings = remember { Settings(this) },
+                    onSaved = { EpochScheduler.refreshNow(this) },
+                    onAddTile = { addTile() },
+                    onBack = { route = Route.PASSES },
+                    modifier = m,
+                )
             }
-
-            busy?.let { Text(it) }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-            HorizontalDivider()
-            Text(if (pass == null) "Buy a pass" else "Buy a new pass (replaces this one)", style = MaterialTheme.typography.titleMedium)
-            Text("Simulated payment: no money is charged.", style = MaterialTheme.typography.bodySmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(enabled = busy == null, onClick = { buy("day-pass") }) { Text("Buy day pass") }
-                Button(enabled = busy == null, onClick = { buy("month-pass") }) { Text("Buy month pass") }
-            }
-
-            HorizontalDivider()
-            TextButton(onClick = { showSettings = !showSettings }) { Text(if (showSettings) "Hide settings" else "Settings") }
-            if (showSettings) SettingsForm()
-        }
-    }
-
-    @Composable
-    private fun SettingsForm() {
-        val s = remember { Settings(this) }
-        var arkiv by remember { mutableStateOf(s.arkivRpcUrl) }
-        var sepolia by remember { mutableStateOf(s.sepoliaRpcUrl) }
-        var issuer by remember { mutableStateOf(s.issuerUrl) }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(arkiv, { arkiv = it }, label = { Text("Arkiv RPC URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(sepolia, { sepolia = it }, label = { Text("Sepolia RPC URL") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(issuer, { issuer = it }, label = { Text("Issuer URL (purchase only)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Button(onClick = {
-                s.arkivRpcUrl = arkiv; s.sepoliaRpcUrl = sepolia; s.issuerUrl = issuer
-                EpochScheduler.refreshNow(this@MainActivity)
-            }) { Text("Save") }
         }
     }
 
@@ -178,18 +210,5 @@ class MainActivity : ComponentActivity() {
             android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_view),
             mainExecutor,
         ) { }
-    }
-
-    private fun productName(p: String) = when (p) {
-        "day-pass" -> "Day pass"
-        "month-pass" -> "Month pass"
-        "month-first" -> "Month pass, 1st class"
-        else -> p
-    }
-
-    private fun className(z: Int) = when (z) {
-        0 -> "2nd class"
-        1 -> "1st class"
-        else -> "AC"
     }
 }

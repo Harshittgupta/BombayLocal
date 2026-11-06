@@ -17,9 +17,9 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="Unlink Scanner"
+        android:label="Unlink Scan"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.UnlinkScan">
         <activity
             android:name=".MainActivity"
             android:exported="true"
