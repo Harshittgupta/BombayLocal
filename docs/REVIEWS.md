@@ -24,6 +24,56 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-7 · passenger-app (apps/passenger: Keystore secret, purchase, Arkiv refresh, pre-prover, lock-screen QR)
+Commit: 3a5b0e4 (build)  (pushed: yes)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on 042fcd4..3a5b0e4
+Device evidence (vivo Y100 V2222, Android 15):
+- 12/12 instrumented tests at 3a5b0e4, then 15/15 after the fixes. Coverage:
+  - the M3 tests;
+  - QR round trip from a real on-device proof (version 16, alphanumeric);
+  - refresh replaying REAL recorded Arkiv and Sepolia data: untampered accepted; tampered leaf, signature or root rejected with the old root kept; a foreign creator ignored;
+  - a live refresh against real Sepolia + Arkiv;
+  - the secret absent from logcat.
+- Manual run:
+  - simulated purchase → POST /admin/publish-root → root 8 on Sepolia (tx 0x05a2…8c17) and Arkiv → refresh ok → 13 proofs pre-proved (avg 3,467 ms, SPEC §10);
+  - QrActivity shown over the keyguard, captured via adb with `deviceLocked=1`, `mIsShowing=true` and `airplane_mode_on=1`;
+  - a QR pulled from the phone verified on the laptop with `circuits npm run verify-qr`: Groth16 ok, signer = issuer, root = Registry root 8.
+- Problems found on the device and fixed before review:
+  - the first notification channel was LOW importance, which vivo files as "Silent" and hides on the lock screen. Now DEFAULT importance with no sound or vibration, plus a public version, plus a Quick Settings "Show pass" tile;
+  - vivo's freezer stalled instrumented tests about 10 s in. Tests now hold QrActivity in the foreground;
+  - `npm start` never started on Windows (an M5 entry-point check bug), fixed with `pathToFileURL`;
+  - two CI-grep false positives: the manifest comment wording, and @noble's "fake accumulator" comments in the generated protocol.js (generated bundles are now excluded from the no-mocks grep; their sources are grepped).
+Findings:
+- [MAJOR] tagging. The refresh never checked `sr.rootId == issuerState.latestRootId`, so an issuer + Arkiv endpoint could hand each phone the same root under a different signed rootId and recognise phones at scans (SPEC §8). **Fixed** + test.
+- [MAJOR] floor. `latest-below-floor` threw before the below-floor drop, so right after `setMinRootId(issuer, rootCount+1)` the phone kept showing QRs scanners reject (BELOW_FLOOR). **Fixed**: the drop runs first (SPEC §3.1 step 1). Test added.
+- [MAJOR] purchase. "Buy new pass" deleted the old Keystore key and secret before `/purchase` succeeded, so an unreachable issuer destroyed a valid pass. **Fixed**: two-phase `createPending` / `commitPending` / `discardPending`, one Keystore key per sealed secret, and the old format is still read. Test added.
+- [MINOR, fixed] buy ran outside the Jobs mutex; CancellationException was recorded as "Couldn't update"; unlock refreshed on every unlock (now at most once per ROOT_INTERVAL = Registry minRootInterval, SPEC §3.1/§8); an overclaiming comment in Jobs.kt.
+Fixed in: 22959a8
+Not fixed (deliberate, MINOR):
+- The QR screen shows "Valid until <date>" next to the code. It is useful to the passenger, and the TC learns at most the last valid day, which the scanner's reason codes would reveal anyway. Revisit in M10 if the anonymity-set story needs it.
+- A crash between `commitPending` and `savePass` can pair the new secret with the old pass.json; the window is milliseconds. Recovery is "buy again" (simulated payment).
+Still open:
+- Pre-proving is 3,467 ms per proof, above the SPEC < 3 s target. It is never on the scan path (cached, lock-screen instant). A native prover (mopro) is the upgrade path.
+- The issuer is reached over `adb reverse` + cleartext localhost for the demo. Production needs an HTTPS issuer URL in Settings.
+- The QS tile needs the user to add it (Android 13+ button in the app). The vivo lock screen works via the notification already.
+- ScannerList / scanner side → M8 (fixtures/qr-vectors.json + sign-vectors.json are ready for its Kotlin verifier).
+
+Rule check (rule-checker subagent, on 042fcd4..22959a8; RULE CHECK: PASS):
+- R1 auditable repo ............ PASS  (no keys in git; .env + local.properties ignored; exact versions in build.gradle.kts and protocol/package.json (@noble 2.4.0); no fresh-clone test)
+- R2 commits proper + same day . PASS  (3a5b0e4, 22959a8, `module-7:`, 2026-11-06, pushed; CI green on both)
+- R3 this review logged ........ PASS  (this entry; 3a5b0e4 and 22959a8 resolve via `git cat-file -t`)
+- R4 two separate apps ......... N/A yet (apps/passenger is its own Gradle project, xyz.unlink.passenger, no scanner imports; scanner = M8)
+- R5 real web3, no mocks ....... PASS. Checked:
+  - item 4: ArkivClient arkiv_query; the only issuer call is POST /purchase;
+  - item 5: check-assets PASS, and bridge.js runs snarkjs fullProve on the device;
+  - item 7: no-mocks grep clean (generated bundles excluded, their sources grepped);
+  - item 8: SPEC §10 rows hold only measured numbers, and "Verify latency" stays "—" until M8.
+- R6 CROPS / Arkiv only ........ PASS  (serves both: CROPS offline/privacy app + Arkiv reads)
+- Invariants 1 / 2 / 4 / 5 ..... PASS  (9 log lines carry only state names; allowBackup=false + exclusion rules; one-shot takeSecret; tracker grep empty; bundle matches fixtures)
+Blockers: none
+
+---
+
 ### 2026-11-06 · module-6 · arkiv (Arkiv data layer: issuer writer + reader, real Rabdi round trip)
 Commit: 81df17b (6a docs notes + friction), 1060f18 (build)  (pushed: yes)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on 9f6c748..1060f18
