@@ -9,7 +9,7 @@ const dep = JSON.parse(readFileSync(join(here, "../deployments.json"), "utf8")).
 const manifest = JSON.parse(readFileSync(join(here, "../circuits/artifacts/manifest.json"), "utf8"));
 const config = {
   chainId: dep.chainId, registry: dep.registry, issuer: dep.issuer, authority: dep.authority,
-  vkSha256: manifest.sha256["verification_key.json"], issuerUrl: "https://unlink-issuer.duckdns.org",
+  vkSha256: manifest.sha256["verification_key.json"], issuerUrl: "https://bombaylocal-issuer.duckdns.org",
   sepoliaRpcs: ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.gateway.tenderly.co"],
   arkivRpc: "https://rpc.rabdi.db-chain.testnet.arkiv.network", commit: "e2e",
 };

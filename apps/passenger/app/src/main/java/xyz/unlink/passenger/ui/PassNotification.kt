@@ -97,7 +97,7 @@ object PassNotification {
         fun build(): Notification.Builder {
             val b = Notification.Builder(context, CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_menu_view)
-                .setContentTitle("Unlink Pass")
+                .setContentTitle("BombayLocal Pass")
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setContentIntent(open)
                 .setCategory(Notification.CATEGORY_STATUS)
@@ -112,10 +112,10 @@ object PassNotification {
                 b.style = Notification.BigPictureStyle()
                     .bigPicture(picture)
                     .bigLargeIcon(null as Bitmap?)
-                    .setBigContentTitle("Unlink Pass")
+                    .setBigContentTitle("BombayLocal Pass")
                     .setSummaryText(validUntil)
             } else {
-                b.setContentText("Open Unlink Pass to prepare your pass")
+                b.setContentText("Open BombayLocal Pass to prepare your pass")
             }
             return b
         }

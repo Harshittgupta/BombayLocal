@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /**
- * Unlink design tokens (shared with the scanner app, which mirrors this file). Dark only: the pass's white QR card is
+ * BombayLocal design tokens (shared with the scanner app, which mirrors this file). Dark only: the pass's white QR card is
  * the brightest thing on any screen, and class is the only colour on the pass card.
  */
 object Ink {

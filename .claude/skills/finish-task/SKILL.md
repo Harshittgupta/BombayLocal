@@ -1,6 +1,6 @@
 ---
 name: finish-task
-description: End-of-task routine for Unlink (rules R2, R3 and the R1–R6 check). Run as /finish-task module-N <short name> when a module's "done when" checks pass.
+description: End-of-task routine for BombayLocal (rules R2, R3 and the R1–R6 check). Run as /finish-task module-N <short name> when a module's "done when" checks pass.
 disable-model-invocation: true
 ---
 Finish the task named in: $ARGUMENTS

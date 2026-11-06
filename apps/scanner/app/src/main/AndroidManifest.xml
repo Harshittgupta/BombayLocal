@@ -17,7 +17,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="Unlink Scan"
+        android:label="BombayLocal Scan"
         android:supportsRtl="true"
         android:theme="@style/Theme.UnlinkScan">
         <activity

@@ -39,7 +39,7 @@ android {
         buildConfigField("String", "ARKIV_RPC_DEFAULT", "\"https://rpc.rabdi.db-chain.testnet.arkiv.network\"")
         // The hosted issuer (issuer/deploy/README.md). For local development set http://127.0.0.1:3000 in Settings
         // and use `adb reverse tcp:3000 tcp:3000` (cleartext is allowed only for localhost).
-        buildConfigField("String", "ISSUER_URL_DEFAULT", "\"https://unlink-issuer.duckdns.org\"")
+        buildConfigField("String", "ISSUER_URL_DEFAULT", "\"https://bombaylocal-issuer.duckdns.org\"")
     }
 
     buildTypes {

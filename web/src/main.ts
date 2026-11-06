@@ -16,8 +16,8 @@ const PRODUCTS: Record<string, { name: string; buy: string; days: number; zone: 
 };
 const CLASS = ["2nd class", "1st class", "AC"];
 const APK = {
-  pass: "https://github.com/Harshittgupta/Unlink/releases/latest/download/unlink-pass.apk",
-  scan: "https://github.com/Harshittgupta/Unlink/releases/latest/download/unlink-scan.apk",
+  pass: "https://github.com/Harshittgupta/BombayLocal/releases/latest/download/bombaylocal-pass.apk",
+  scan: "https://github.com/Harshittgupta/BombayLocal/releases/latest/download/bombaylocal-scan.apk",
 };
 const small = matchMedia("(max-width: 760px)");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;

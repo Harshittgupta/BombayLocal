@@ -1,6 +1,6 @@
 ---
 name: rule-checker
-description: Runs the Unlink rule check (R1–R6 and the real-web3 audit from CLAUDE.md) at the end of every task and reports PASS/FAIL with evidence. Read-only; never fixes anything.
+description: Runs the BombayLocal rule check (R1–R6 and the real-web3 audit from CLAUDE.md) at the end of every task and reports PASS/FAIL with evidence. Read-only; never fixes anything.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 effort: low

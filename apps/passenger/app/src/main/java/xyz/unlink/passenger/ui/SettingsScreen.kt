@@ -76,7 +76,7 @@ fun SettingsScreen(settings: Settings, onSaved: () -> Unit, onAddTile: () -> Uni
             }
 
             Section("About") {
-                Text("Unlink Pass ${BuildConfig.VERSION_NAME}", style = Type.body, color = Ink.text)
+                Text("BombayLocal Pass ${BuildConfig.VERSION_NAME}", style = Type.body, color = Ink.text)
                 Text("Payment in this build is simulated: no money is charged.", style = Type.label, color = Ink.muted)
             }
         }

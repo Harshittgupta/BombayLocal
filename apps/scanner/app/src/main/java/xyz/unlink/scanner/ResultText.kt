@@ -12,7 +12,7 @@ object ResultText {
         Reason.ROOT_NEAR_EXPIRY -> "Valid — pass needs an update soon"
         Reason.SCANNER_UNSYNCED -> "Valid — scanner not synced for 24 h"
         Reason.DUPLICATE -> "Already used — shown 3+ times"
-        Reason.MALFORMED -> "Not an Unlink pass"
+        Reason.MALFORMED -> "Not a BombayLocal pass"
         Reason.WRONG_EPOCH -> "Old code — ask to reopen the pass"
         Reason.SCANNER_STALE -> "Scanner out of date — sync now"
         Reason.ISSUER_INACTIVE -> "Issuer not recognised"

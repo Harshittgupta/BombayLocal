@@ -46,7 +46,7 @@ async function retry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 }
 
 /**
- * Writes Unlink entities to Arkiv with the writer's own wallet ($creator = $owner = writer). Every write is
+ * Writes BombayLocal entities to Arkiv with the writer's own wallet ($creator = $owner = writer). Every write is
  * idempotent (SPEC §3.1): it first queries for an entity with the same batchNo / seq / rootId / listNo / vkSha256,
  * skips if identical, and refuses if different, so a retried publish never creates a second, different entity.
  * Expiry follows SPEC §9 (blocks, via ExpirationTime.fromSeconds).

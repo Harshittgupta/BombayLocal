@@ -1,6 +1,6 @@
-# Caddy: HTTPS with an automatic Let's Encrypt certificate, in front of the Unlink issuer (issuer/deploy/README.md).
+# Caddy: HTTPS with an automatic Let's Encrypt certificate, in front of the BombayLocal issuer (issuer/deploy/README.md).
 [Unit]
-Description=Caddy (HTTPS for the Unlink issuer)
+Description=Caddy (HTTPS for the BombayLocal issuer)
 After=network-online.target
 Wants=network-online.target
 

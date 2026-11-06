@@ -29,7 +29,7 @@ const config = {
   issuer: dep.issuer,
   authority: dep.authority,
   vkSha256: manifest.sha256["verification_key.json"],
-  issuerUrl: "https://unlink-issuer.duckdns.org",
+  issuerUrl: "https://bombaylocal-issuer.duckdns.org",
   sepoliaRpcs: ["https://ethereum-sepolia-rpc.publicnode.com", "https://sepolia.gateway.tenderly.co"],
   arkivRpc: "https://rpc.rabdi.db-chain.testnet.arkiv.network",
   commit,

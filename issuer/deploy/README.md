@@ -1,6 +1,6 @@
 # Hosting the issuer (Oracle Cloud Always Free)
 
-The issuer is the only Unlink component that needs a server. It runs the purchase endpoint, auto-publishes roots to
+The issuer is the only BombayLocal component that needs a server. It runs the purchase endpoint, auto-publishes roots to
 Sepolia and Arkiv, and posts a heartbeat root every 6 h. Showing and scanning a pass never use it, and phones refresh
 from Sepolia and Arkiv directly.
 
@@ -48,13 +48,13 @@ Upload `~/.ssh/unlink_oci.pub` in the next step. Never share or commit the priva
 
 ## 4. A name for HTTPS (DuckDNS, free)
 Sign in at <https://www.duckdns.org>, create a subdomain (for example `unlink-issuer`), and set its IP to the VM's public
-IP. The issuer's address is then `https://unlink-issuer.duckdns.org`. Caddy needs this name to get a certificate.
+IP. The issuer's address is then `https://bombaylocal-issuer.duckdns.org`. Caddy needs this name to get a certificate.
 
 ## 5. Set up the VM
 ```sh
 ssh -i ~/.ssh/unlink_oci ubuntu@<public-ip>
-curl -fsSLO https://raw.githubusercontent.com/Harshittgupta/Unlink/main/issuer/deploy/setup.sh
-sudo sh setup.sh unlink-issuer.duckdns.org
+curl -fsSLO https://raw.githubusercontent.com/Harshittgupta/BombayLocal/main/issuer/deploy/setup.sh
+sudo sh setup.sh bombaylocal-issuer.duckdns.org
 exit
 ```
 `setup.sh` does the following:
@@ -76,10 +76,10 @@ SSH_KEY=~/.ssh/unlink_oci sh issuer/deploy/push.sh ubuntu@<public-ip> db
 
 ## 7. Check
 ```sh
-curl https://unlink-issuer.duckdns.org/health                  # {"ok":true}
+curl https://bombaylocal-issuer.duckdns.org/health                  # {"ok":true}
 ssh -i ~/.ssh/unlink_oci ubuntu@<public-ip> 'journalctl -u unlink-issuer -n 20 --no-pager'
 ```
-Then set **Issuer URL** in both apps' Settings to `https://unlink-issuer.duckdns.org`. From then on, buying and scan
+Then set **Issuer URL** in both apps' Settings to `https://bombaylocal-issuer.duckdns.org`. From then on, buying and scan
 uploads work from any network, with no cable and no laptop.
 
 ## Updating, backups, rules

@@ -1,6 +1,6 @@
 #!/bin/sh
 # One-time setup of the hosted issuer on a fresh Ubuntu 24.04 VM (Oracle Cloud Always Free; any Ubuntu VM works).
-# Run on the VM as root:   sudo sh setup.sh <domain>      e.g.  sudo sh setup.sh unlink-issuer.duckdns.org
+# Run on the VM as root:   sudo sh setup.sh <domain>      e.g.  sudo sh setup.sh bombaylocal-issuer.duckdns.org
 # Installs pinned Node and Caddy (checksums verified), the repo at /opt/unlink, the systemd units and the firewall
 # rules. It does NOT install secrets or the database: those come from the laptop (README.md steps 5 and 6).
 set -eu
@@ -9,7 +9,7 @@ DOMAIN="${1:?usage: sudo sh setup.sh <domain>}"
 REF="${REF:-main}"
 NODE_VERSION=22.13.1
 CADDY_VERSION=2.10.0
-REPO=https://github.com/Harshittgupta/Unlink.git
+REPO=https://github.com/Harshittgupta/BombayLocal.git
 
 case "$(uname -m)" in
   aarch64) NODE_ARCH=arm64; CADDY_ARCH=arm64 ;;

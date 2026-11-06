@@ -55,7 +55,7 @@ function uniqueBy<T extends { entityKey: string }>(items: T[], id: (t: T) => str
 export type VerifyKeyRecord = Keyed<{ vkSha256: string; vk: Uint8Array }>;
 
 /**
- * Reads Unlink entities back from Arkiv. Every query filters on app, type and the writer address, AND on
+ * Reads BombayLocal entities back from Arkiv. Every query filters on app, type and the writer address, AND on
  * $creator = $owner = writer (in the query and again in code). This is the same read path the phone and
  * scanner implement over raw JSON-RPC (arkiv_query).
  */

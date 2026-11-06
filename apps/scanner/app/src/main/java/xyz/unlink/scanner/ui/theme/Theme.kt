@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /**
- * Unlink design tokens, mirrored from the passenger app so both apps share one design system. Dark only. On the
+ * BombayLocal design tokens, mirrored from the passenger app so both apps share one design system. Dark only. On the
  * scanner the only strong colours are the verdict washes (see [xyz.unlink.scanner.ResultText.color]).
  */
 object Ink {

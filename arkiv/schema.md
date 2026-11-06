@@ -1,4 +1,4 @@
-# Unlink on Arkiv: entity schema (SPEC v0.3 §3.1, §9)
+# BombayLocal on Arkiv: entity schema (SPEC v0.3 §3.1, §9)
 
 Network: **Arkiv Rabdi testnet**, chain id 7794095, RPC `https://rpc.rabdi.db-chain.testnet.arkiv.network`, explorer `https://rabdi.explorer.arkiv.network`.
 Code: `issuer/src/arkiv/` (`schemas.ts`, `writer.ts`, `reader.ts`, `codec.ts`, `expiry.ts`). SDK `@arkiv-network/sdk` 1.0.1.

@@ -1,7 +1,7 @@
 {
   "name": "@unlink/protocol",
   "version": "0.3.0",
-  "description": "Unlink protocol constants and hashing shared by circuits, issuer, scripts and audit page (SPEC v0.3)",
+  "description": "BombayLocal protocol constants and hashing shared by circuits, issuer, scripts and audit page (SPEC v0.3)",
   "license": "MIT",
   "private": true,
   "type": "module",

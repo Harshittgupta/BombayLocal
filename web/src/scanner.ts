@@ -67,7 +67,7 @@ export function title(reason: Result["reason"]): string {
     ROOT_NEAR_EXPIRY: "Valid — pass needs an update soon",
     SCANNER_UNSYNCED: "Valid — scanner not synced for 24 h",
     DUPLICATE: "Already used — shown 3+ times",
-    MALFORMED: "Not an Unlink pass",
+    MALFORMED: "Not a BombayLocal pass",
     WRONG_EPOCH: "Old code — ask to reopen the pass",
     SCANNER_STALE: "Scanner out of date — sync now",
     ISSUER_INACTIVE: "Issuer not recognised",

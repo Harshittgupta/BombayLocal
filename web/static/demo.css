@@ -1,4 +1,4 @@
-/* Unlink demo: the Android apps' dark design system (apps/passenger and apps/scanner ui/theme). The pass QR card is the only bright object. */
+/* BombayLocal demo: the Android apps' dark design system (apps/passenger and apps/scanner ui/theme). The pass QR card is the only bright object. */
 :root {
   --ground: #10161c;
   --raised: #19212a;

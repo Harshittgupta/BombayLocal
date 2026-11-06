@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>Unlink Audit</title>
-<meta name="description" content="Check Unlink's public claims yourself: issuers, roots, signatures, expiry and the verification key, read live from Ethereum Sepolia and Arkiv.">
+<title>BombayLocal Audit</title>
+<meta name="description" content="Check BombayLocal's public claims yourself: issuers, roots, signatures, expiry and the verification key, read live from Ethereum Sepolia and Arkiv.">
 <!--
-  Unlink audit page (SPEC §9). ONE static file, no build step, no server.
+  BombayLocal audit page (SPEC §9). ONE static file, no build step, no server.
   Reads ONLY public data: the Sepolia Registry over JSON-RPC (ethers, pinned + SRI) and Arkiv over JSON-RPC (fetch).
   No tracking scripts, no wallet, no cookies, no storage, no web fonts: the only requests are ethers from cdnjs and
   the two RPC endpoints shown on the page (both editable).
@@ -17,7 +17,7 @@
         crossorigin="anonymous"></script>
 <style>
 /* Layout: one 1000px reading column. Claims checklist first (the 30-second check), then per-issuer detail, then
-   "verify it yourself". Actor hues match the Unlink diagrams: Ethereum purple, Arkiv teal. */
+   "verify it yourself". Actor hues match the BombayLocal diagrams: Ethereum purple, Arkiv teal. */
 :root {
   --bg: #F4F6F8; --surface: #FFFFFF; --fg: #17202A; --muted: #5A6573; --line: #D3D9E0; --ink2: #3B4653;
   --eth: #5B4FD0; --eth-t: #EFEDFC; --arkiv: #0E8577; --arkiv-t: #E3F5F2;
@@ -107,9 +107,9 @@ footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--lin
 <body>
 <div class="page">
   <header>
-    <div class="eyebrow">Unlink · public audit · Ethereum Sepolia + Arkiv</div>
-    <h1>Unlink Audit</h1>
-    <p class="lede">Unlink makes claims about who may issue passes, which pass list is current, and which verification key scanners use. This page checks each claim live, straight from Ethereum and Arkiv, in your browser. Nothing here comes from the Unlink team's servers.</p>
+    <div class="eyebrow">BombayLocal · public audit · Ethereum Sepolia + Arkiv</div>
+    <h1>BombayLocal Audit</h1>
+    <p class="lede">BombayLocal makes claims about who may issue passes, which pass list is current, and which verification key scanners use. This page checks each claim live, straight from Ethereum and Arkiv, in your browser. Nothing here comes from the BombayLocal team's servers.</p>
   </header>
 
   <section aria-labelledby="src-h">
@@ -161,7 +161,7 @@ footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--lin
 
   <footer>
     <p>This page uses ethers 6.17.0 from cdnjs (pinned with a subresource-integrity hash) and talks only to the two RPC URLs above. No accounts, no wallet, no cookies, no stored data.</p>
-    <p>Source: <span class="mono">audit/index.html</span> in the Unlink repository (MIT).</p>
+    <p>Source: <span class="mono">audit/index.html</span> in the BombayLocal repository (MIT).</p>
   </footer>
 </div>
 

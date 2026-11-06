@@ -1,4 +1,4 @@
-# Unlink: Build Plan (step by step, with prompts, reviews, model and effort)
+# BombayLocal: Build Plan (step by step, with prompts, reviews, model and effort)
 
 Written for **Claude Code** (terminal, desktop or VS Code) on a paid Claude plan. Every module has a timebox, the model and effort to use, a copy-paste prompt, a "done when" check, and the review. Prompts are short on purpose: `CLAUDE.md` loads by itself, and the prompts point Claude at files instead of pasting them. That is the biggest token saving.
 

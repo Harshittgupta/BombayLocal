@@ -1,7 +1,7 @@
 {
   "name": "@unlink/issuer",
   "version": "0.3.0",
-  "description": "Unlink issuer service (SPEC v0.3): purchases, Merkle tree, Registry.postRoot, signed roots",
+  "description": "BombayLocal issuer service (SPEC v0.3): purchases, Merkle tree, Registry.postRoot, signed roots",
   "license": "MIT",
   "private": true,
   "type": "module",

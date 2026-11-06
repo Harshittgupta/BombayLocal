@@ -1,4 +1,4 @@
-# CLAUDE.md — Unlink
+# CLAUDE.md — BombayLocal
 
 Offline, privacy-preserving transit pass verification for ETHGlobal Mumbai. A passenger's phone proves "I hold a valid pass" with a Groth16 proof. A TC scanner checks it **offline** and learns one thing: **this pass is valid right now.**
 
@@ -86,11 +86,11 @@ Load these files on demand only; don't read them all every session:
 #              --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args <authority> 60
 #            (use the publicnode RPC; the Alchemy key under-estimates creation gas. deployments.json has the live address)
 # issuer:    cd issuer && npm ci && npm test            (vitest; node:sqlite, real circuit proof)
-#            HOSTED: https://unlink-issuer.duckdns.org (Oracle Always Free VM 130.210.32.36, systemd + Caddy; issuer/deploy/README.md)
+#            HOSTED: https://bombaylocal-issuer.duckdns.org (Oracle Always Free VM 130.210.32.36, systemd + Caddy; issuer/deploy/README.md)
 #            update: ssh -i ~/.ssh/unlink_oci ubuntu@130.210.32.36 'sudo sh /opt/unlink/issuer/deploy/update.sh'   (after pushing to main)
 #            backup: SSH_KEY=~/.ssh/unlink_oci sh issuer/deploy/push.sh ubuntu@130.210.32.36 backup;  logs: ssh ... 'journalctl -u unlink-issuer -n 50'
 #            NEVER `npm start` with the live ISSUER_PRIVATE_KEY while the VM runs (two writers = conflicting roots). Purchases auto-publish a root ~30-60 s later.
-#            publish now: curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://unlink-issuer.duckdns.org/admin/publish-root   (NOT `npm run publish-root`: the laptop issuer.db is retired)
+#            publish now: curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://bombaylocal-issuer.duckdns.org/admin/publish-root   (NOT `npm run publish-root`: the laptop issuer.db is retired)
 # arkiv:     cd issuer && npm run arkiv-roundtrip        (pre-hosting only: now refuses, the publisher's single-writer guard sees the hosted tree)
 #            cd issuer && npm run arkiv-expiry           (2-minute entity, gone after its expiry block; ~2.5 min)
 # apps:      cd apps/passenger && ./gradlew :app:assembleDebug   (JAVA_HOME = JDK 21 root; local.properties sdk.dir)
@@ -100,7 +100,7 @@ Load these files on demand only; don't read them all every session:
 #            demo: buy in the app (any network; default issuer = hosted); the pass turns Ready within ~1-2 min (auto-publish + app re-check)
 # qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
 # audit:     node scripts/check-audit.mjs   (runs audit/index.html's own logic vs LIVE Sepolia + Arkiv; checks the ethers SRI; exit 1 on any false claim)
-#            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/Unlink/audit/
+#            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/BombayLocal/audit/
 # web:       cd web && npm ci && npm test && npm run build   (browser scanner vs all fixtures/qr; site in web/_site; Pages workflow deploys it: demo at /, audit at /audit/)
 #            cd web && npm run e2e   (LIVE: buys 1 real day pass on the hosted issuer, waits for auto-publish, proves, decodes the QR pixels, scans Green/Amber/Red with 0 requests)
 #            release: git tag vX.Y.Z && git push origin vX.Y.Z   (release.yml builds both APKs; the site's download QRs use releases/latest)

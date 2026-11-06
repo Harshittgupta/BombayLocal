@@ -1,7 +1,7 @@
 {
   "name": "@unlink/circuits",
   "version": "0.3.0",
-  "description": "Unlink pass circuit (SPEC v0.3 §4), Groth16 setup and sample prover",
+  "description": "BombayLocal pass circuit (SPEC v0.3 §4), Groth16 setup and sample prover",
   "license": "MIT",
   "private": true,
   "type": "module",

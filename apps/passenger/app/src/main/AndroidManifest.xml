@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Unlink Passenger. INTERNET is used only to buy a pass (the issuer, once) and to refresh the root and path from
+<!-- BombayLocal Passenger. INTERNET is used only to buy a pass (the issuer, once) and to refresh the root and path from
      public data (Arkiv JSON-RPC + one Sepolia eth_call). Proving, the QR and the lock-screen pass work fully offline.
      No third-party tracking, crash-reporting or vendor SDKs of any kind (CLAUDE.md invariant 4). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -16,7 +16,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:label="Unlink Pass"
+        android:label="BombayLocal Pass"
         android:supportsRtl="true"
         android:theme="@style/Theme.Unlink">
 

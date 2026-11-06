@@ -147,7 +147,7 @@ class QrActivity : ComponentActivity() {
                         }
                     } else {
                         Text(
-                            "Pass not ready — unlock your phone and open Unlink Pass once",
+                            "Pass not ready — unlock your phone and open BombayLocal Pass once",
                             style = Type.title, color = Ink.text, textAlign = TextAlign.Center,
                         )
                     }

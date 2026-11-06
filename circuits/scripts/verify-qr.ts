@@ -1,4 +1,4 @@
-// Verifies an Unlink pass QR on the laptop, independently of the phone and the scanner app:
+// Verifies a BombayLocal pass QR on the laptop, independently of the phone and the scanner app:
 //   decode the SPEC §3.4 payload → Groth16 verify with circuits/artifacts/verification_key.json → recover the §3.3
 //   signer → compare the root with the issuer's latest root on the Sepolia Registry (one public eth_call).
 // Usage (from circuits/):  npm run verify-qr -- <file-with-the-641-char-QR-text>

@@ -7,7 +7,7 @@ import xyz.unlink.passenger.pass.ArkivRevocation
 import xyz.unlink.passenger.pass.SignedRoot
 
 /**
- * Reads Unlink entities from Arkiv over plain JSON-RPC (`arkiv_query`), the same read path as issuer/src/arkiv/reader.ts
+ * Reads BombayLocal entities from Arkiv over plain JSON-RPC (`arkiv_query`), the same read path as issuer/src/arkiv/reader.ts
  * (schema: arkiv/schema.md). Every query filters on type + issuer AND `$creator = $owner = issuer`, and every row's
  * creator/owner is checked again here: anyone can write entities with any attributes (SPEC §3.1 step 2, §8).
  *

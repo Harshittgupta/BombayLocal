@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Unlink — private, offline train passes</title>
-  <meta name="description" content="Try Unlink: buy a pass, see its zero-knowledge QR, and scan it with an offline ticket-checker phone. Real Ethereum Sepolia + Arkiv data, real proofs, in your browser.">
+  <title>BombayLocal — private, offline train passes</title>
+  <meta name="description" content="Try BombayLocal: buy a pass, see its zero-knowledge QR, and scan it with an offline ticket-checker phone. Real Ethereum Sepolia + Arkiv data, real proofs, in your browser.">
   <meta name="color-scheme" content="dark">
   <link rel="stylesheet" href="demo.css">
 </head>
 <body>
   <header class="top">
-    <div class="brand"><span class="mark" aria-hidden="true"></span>Unlink</div>
+    <div class="brand"><span class="mark" aria-hidden="true"></span>BombayLocal</div>
     <nav>
       <a href="#how">How it works</a>
       <a href="audit/">Live audit</a>
-      <a href="https://github.com/Harshittgupta/Unlink">Source</a>
+      <a href="https://github.com/Harshittgupta/BombayLocal">Source</a>
     </nav>
   </header>
 
@@ -24,10 +24,10 @@
       <p>A passenger's phone proves "I hold a valid pass" with a zero-knowledge proof. The ticket checker's phone verifies it <strong>offline</strong> in about 50&nbsp;ms and learns one thing: <em>this pass is valid right now</em>. Try both phones below — everything is real.</p>
     </section>
 
-    <section class="stage" id="stage" aria-label="Two phones: Unlink Pass and Unlink Scan">
+    <section class="stage" id="stage" aria-label="Two phones: BombayLocal Pass and BombayLocal Scan">
       <!-- Passenger phone -->
       <div class="phone passenger" id="passenger">
-        <div class="phone-label">Passenger · <b>Unlink Pass</b></div>
+        <div class="phone-label">Passenger · <b>BombayLocal Pass</b></div>
         <div class="screen" id="pScreen">
           <div class="view" id="vBuy">
             <h2>Buy a pass</h2>
@@ -74,7 +74,7 @@
 
       <!-- Scanner phone -->
       <div class="phone scanner" id="scanner">
-        <div class="phone-label">Ticket checker · <b>Unlink Scan</b></div>
+        <div class="phone-label">Ticket checker · <b>BombayLocal Scan</b></div>
         <div class="screen" id="sScreen">
           <canvas id="cam" aria-hidden="true"></canvas>
           <div class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -116,14 +116,14 @@
         <li><b>Prove.</b> Your phone rebuilds the list from Arkiv, checks it against Ethereum, and makes a zero-knowledge proof: "my pass is in this list and valid today". The code changes every 10 minutes.</li>
         <li><b>Check offline.</b> The checker's phone verifies the proof and the issuer's signature with no internet. Showing the same code twice turns Amber, then Red.</li>
       </ol>
-      <p class="muted small">Limits we state up front: duplicates are caught per scanner; the trusted setup is demo-grade; the authority is a single key (a multisig in production); payment is simulated. Details in the <a href="https://github.com/Harshittgupta/Unlink#threat-model-and-limitations">README</a>.</p>
+      <p class="muted small">Limits we state up front: duplicates are caught per scanner; the trusted setup is demo-grade; the authority is a single key (a multisig in production); payment is simulated. Details in the <a href="https://github.com/Harshittgupta/BombayLocal#threat-model-and-limitations">README</a>.</p>
     </section>
   </main>
 
   <footer class="foot">
-    <span>Unlink · MIT · ETHGlobal Mumbai</span>
+    <span>BombayLocal · MIT · ETHGlobal Mumbai</span>
     <a href="audit/">Live audit</a>
-    <a href="https://github.com/Harshittgupta/Unlink">GitHub</a>
+    <a href="https://github.com/Harshittgupta/BombayLocal">GitHub</a>
     <button class="link" id="replayTour">Replay tour</button>
     <span class="muted small" id="build"></span>
   </footer>
@@ -131,8 +131,8 @@
   <aside class="downloads" id="downloads" aria-label="Download the Android apps">
     <button class="dl-toggle" id="dlToggle" aria-expanded="true">Get the Android apps</button>
     <div class="dl-body" id="dlBody">
-      <a class="dl" id="dlPass"><canvas id="qrPass" role="img" aria-label="QR code: download Unlink Pass"></canvas><span><b>Unlink Pass</b><small>passenger · .apk</small></span></a>
-      <a class="dl" id="dlScan"><canvas id="qrScan" role="img" aria-label="QR code: download Unlink Scan"></canvas><span><b>Unlink Scan</b><small>ticket checker · .apk</small></span></a>
+      <a class="dl" id="dlPass"><canvas id="qrPass" role="img" aria-label="QR code: download BombayLocal Pass"></canvas><span><b>BombayLocal Pass</b><small>passenger · .apk</small></span></a>
+      <a class="dl" id="dlScan"><canvas id="qrScan" role="img" aria-label="QR code: download BombayLocal Scan"></canvas><span><b>BombayLocal Scan</b><small>ticket checker · .apk</small></span></a>
       <p class="muted tiny">Built by GitHub Actions from this repo. Android 9+.</p>
     </div>
   </aside>

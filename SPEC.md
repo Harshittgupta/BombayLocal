@@ -1,4 +1,4 @@
-# Unlink — Specification v0.3
+# BombayLocal — Specification v0.3
 
 Status: **frozen for build** (change only with a note in `docs/REVIEWS.md`).
 All numbers in **bold** are parameters (see §9). Integers are big-endian, fixed width. Field = BN254 scalar field, modulus `r`. Hash = Poseidon (circomlib parameters) unless stated.

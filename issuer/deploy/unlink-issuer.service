@@ -1,7 +1,7 @@
-# The hosted Unlink issuer (issuer/deploy/README.md). Listens on 127.0.0.1:3000 only; Caddy serves HTTPS in front.
+# The hosted BombayLocal issuer (issuer/deploy/README.md). Listens on 127.0.0.1:3000 only; Caddy serves HTTPS in front.
 # Exactly one issuer process may ever post roots for this issuer key: never run a second copy anywhere else.
 [Unit]
-Description=Unlink issuer (purchases; roots to Sepolia and Arkiv)
+Description=BombayLocal issuer (purchases; roots to Sepolia and Arkiv)
 After=network-online.target
 Wants=network-online.target
 # Never start on an empty database (it would publish a tree that conflicts with what is already on-chain).
