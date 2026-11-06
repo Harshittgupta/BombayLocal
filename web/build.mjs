@@ -50,7 +50,22 @@ await esbuild.build({
   define: { __UNLINK_CONFIG__: JSON.stringify(config) },
 });
 
-for (const f of ["index.html", "demo.css"]) copyFileSync(join(here, "static", f), join(out, f));
+// Content-hashed names for the script and stylesheet: Pages lets browsers cache files for 10 minutes, so a new
+// version gets a new name that no browser has cached. index.html points at the hashed names.
+const hashed = {};
+for (const [src, base, ext] of [[join(out, "demo.js"), "demo", "js"], [join(here, "static", "demo.css"), "demo", "css"]]) {
+  const h = createHash("sha256").update(readFileSync(src)).digest("hex").slice(0, 10);
+  const name = `${base}.${h}.${ext}`;
+  copyFileSync(src, join(out, name));
+  hashed[`${base}.${ext}`] = name;
+}
+rmSync(join(out, "demo.js"));
+let html = readFileSync(join(here, "static", "index.html"), "utf8");
+for (const [plain, name] of Object.entries(hashed)) {
+  if (!html.includes(`"${plain}"`)) throw new Error(`index.html does not reference ${plain}`);
+  html = html.replace(`"${plain}"`, `"${name}"`);
+}
+writeFileSync(join(out, "index.html"), html);
 
 for (const f of ["pass.wasm", "pass_final.zkey", "verification_key.json"]) {
   const got = sha256(join(www, f));
