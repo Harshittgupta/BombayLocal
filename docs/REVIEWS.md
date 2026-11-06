@@ -24,6 +24,35 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-9b · ui + hosted issuer (UI rebuild, QR in notification, auto-publish, Oracle Cloud deploy)
+Commit: 6e47fb8 (UI), 2830456 (issuer auto-publish, purchase limit, deploy kit), cd4fdaf (apps default to hosted issuer), 246ffa0 (scanner allowlist), 09d36aa (deploy git ownership)  (pushed: yes)
+Reviewer: hostile-reviewer subagent, fresh context, on db0252f..09d36aa
+Evidence: issuer 29/29 (vitest), protocol 42/42, both apps assembleDebug + androidTest APKs, :verifier:test, check-assets PASS, CI tracker + no-mocks greps clean (tracked + new files). On device: passenger 15/15 (vivo, before the hosted-URL change), scanner 10/10 (A142; the live-sync test needed a retry after the public Arkiv endpoint rate-limited the phone). Live: https://unlink-issuer.duckdns.org/health 200 (Let's Encrypt); in-app purchase from the vivo with no laptop → hosted auto-publish root 13 (tx 0xd0ee…); re-installed scanner key 0x26b9…d70d published as ScannerList 2 and Sync now = `scannerList=listed`. Single-writer guard verified live: stale laptop DB (#12) vs chain (#13) refused before any write.
+Findings:
+- [MAJOR] laptop entry points (cli-publish, arkiv-roundtrip, server) could create an empty DB and post a conflicting tree with the live key → fixed: single-writer guard in publishRoot (DB latest root must equal the issuer's on-chain latest, else refuse before any Arkiv/Sepolia write); CLI tools honour ISSUER_DB_PATH
+- [MAJOR] notification could keep a past-epoch QR if the process died / alarm deferred → fixed: setTimeoutAfter(boundary + 110 s) (within SKEW), plus the existing alarm, screen-on and in-process boundary re-posts
+- [MAJOR] push.sh backup wrote the DB (idCommitments, purchase↔leaf map) to the repo root, not gitignored → fixed: ~/unlink-backups mode 600; *.db/*.db-shm/*.db-wal in the root .gitignore
+- [MAJOR] Caddy's default logger recorded client IPs (38 http.log.error lines from 502s during restarts, confirmed on the VM) → fixed: global log excludes http.log.error + http.handlers.reverse_proxy; issuer pino serializers keep only method/path/status (test 11)
+- [MAJOR] auto-publish + immediate app refresh make a fresh buyer the sole holder of the newest root at low traffic (issuer + TC collusion can link scans until the next root) → mitigated: post-purchase refreshes spaced ≥ ROOT_INTERVAL; residual documented in SPEC §8 "Anonymity set of a root", §3.1 note, README limitations, autopublish.ts; production should publish on a fixed ROOT_INTERVAL cadence
+- [MINOR] service comment named push-secrets.sh → fixed; update.sh ran its stale copy after self-pull → fixed (re-exec)
+Fixed in: 6a08cee, d379ae1
+Not fixed (deliberate): global 300/day purchase cap can be exhausted by ~30 IPs (MINOR; demo guard, gas protection wins); setup.sh fetches checksums from the same origin as the files (integrity, not authenticity; MINOR); extra systemd hardening (CapabilityBoundingSet, RestrictAddressFamilies) (MINOR)
+Still open:
+- the 38 pre-fix Caddy error-log lines with client IPs are still in the VM's journald: purging them (`journalctl --vacuum-time`) was blocked by the auto-mode classifier as log tampering; the user decides
+- Arkiv public endpoint rate-limits phones and the issuer (no ARKIV_ACCESS_KEY); live-sync tests can fail until it clears
+- Oracle may reclaim an Always Free VM idle for 7 days (restart from the console; DB on the boot volume survives)
+- physical scans from the notification shade / lock screen and the notification crop check still to be confirmed by the user
+
+Rule check (rule-checker subagent):
+- R1 auditable repo ............ PASS  (no keys/.db in git ls-files; .env + *.db ignored; .env.example; Node 22.13.1 + Caddy 2.10.0 pinned with checksum check; docs/JUDGE_PREP.md untracked and secret-free)
+- R2 commits proper + same day . PASS  (7 module-9b commits 2026-11-06 21:46–22:38, pushed; origin/main == main)
+- R3 this review logged ........ PASS  (this entry)
+- R4 two separate apps ......... PASS  (separate settings.gradle.kts + applicationIds, no cross-imports)
+- R5 real web3, no mocks ....... PASS  (Registry issuerState on chain: active, latestRootId 13 from the hosted issuer; scanner sync reads RPC; mock grep only purchase.ts; :verifier untouched, no networking imports; WebViewGroth16Engine `return true` is onRenderProcessGone's handled flag, failing pending verifies closed, not a bypass; cleartext only 127.0.0.1/localhost)
+- R6 CROPS / Arkiv only ........ PASS  (Hedera/World ID only as exclusions in docs)
+- Invariants 1, 2, 3, 4 ........ PASS  (logger serializers + Caddy excludes; allowBackup=false both apps; verifier diff empty; tracker grep clean)
+Blockers: none
+
 ### 2026-11-06 · module-9 · audit-page (audit/index.html on GitHub Pages)
 Commit: 9ffe64b (build)  (pushed: yes; the "Audit page" Pages workflow succeeded, https://harshittgupta.github.io/Unlink/ returns HTTP 200)
 Reviewer: hostile-reviewer subagent (Sonnet, effort medium per finish-task for module-9), fresh context, on 9ffe64b; it re-ran `node scripts/check-audit.mjs`
