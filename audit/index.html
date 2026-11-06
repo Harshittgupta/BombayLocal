@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Unlink Audit</title>
+<meta name="description" content="Check Unlink's public claims yourself: issuers, roots, signatures, expiry and the verification key, read live from Ethereum Sepolia and Arkiv.">
+<!--
+  Unlink audit page (SPEC §9). ONE static file, no build step, no server.
+  Reads ONLY public data: the Sepolia Registry over JSON-RPC (ethers, pinned + SRI) and Arkiv over JSON-RPC (fetch).
+  No tracking scripts, no wallet, no cookies, no storage, no web fonts: the only requests are ethers from cdnjs and
+  the two RPC endpoints shown on the page (both editable).
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js"
+        integrity="sha384-lApM4ELRuFNT7NgNqnXB2zFWgSDdhVvmnOHov2DPJz/2zuNpZImXBeklFr18ilvi"
+        crossorigin="anonymous"></script>
+<style>
+/* Layout: one 1000px reading column. Claims checklist first (the 30-second check), then per-issuer detail, then
+   "verify it yourself". Actor hues match the Unlink diagrams: Ethereum purple, Arkiv teal. */
+:root {
+  --bg: #F4F6F8; --surface: #FFFFFF; --fg: #17202A; --muted: #5A6573; --line: #D3D9E0; --ink2: #3B4653;
+  --eth: #5B4FD0; --eth-t: #EFEDFC; --arkiv: #0E8577; --arkiv-t: #E3F5F2;
+  --ok: #1E7E37; --ok-t: #E6F4EA; --warn: #9A6200; --warn-t: #FFF4DC; --bad: #B42318; --bad-t: #FDECEA;
+  --code-bg: #EEF1F4;
+  --f-body: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --f-display: "Bahnschrift", "DIN Alternate", "Arial Narrow", "Roboto Condensed", var(--f-body);
+  --f-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1318; --surface: #151C24; --fg: #E5EAF0; --muted: #97A3B0; --line: #2A3542; --ink2: #B7C1CC;
+    --eth: #ADA4FF; --eth-t: #25223F; --arkiv: #52D3C1; --arkiv-t: #11302C;
+    --ok: #4CC46A; --ok-t: #11291A; --warn: #E9A93A; --warn-t: #2E2410; --bad: #F07067; --bad-t: #34171A;
+    --code-bg: #1D2630;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+.page { max-width: 1000px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-right, 0px)) 64px max(16px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: .01em; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.15rem; }
+p { margin: 0; max-width: 70ch; }
+a { color: var(--eth); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--eth); outline-offset: 2px; }
+.eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 12px; }
+.lede { color: var(--ink2); font-size: 1.08rem; }
+.mono { font-family: var(--f-mono); font-size: .88em; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+/* Flex children default to min-width:auto; let them shrink so <pre> and long hashes scroll or wrap inside. */
+.page > *, section > *, .step > *, .claim > div { min-width: 0; }
+pre { max-width: 100%; }
+
+.sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; align-items: end; }
+.sources label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; color: var(--muted); min-width: 0; }
+.sources input { font: inherit; font-family: var(--f-mono); font-size: .85rem; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--surface); color: var(--fg); width: 100%; }
+button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--fg); background: var(--fg);
+  color: var(--bg); cursor: pointer; }
+button.ghost { background: transparent; color: var(--fg); border-color: var(--line); font-weight: 500; padding: 5px 10px; font-size: .85rem; }
+.status-line { font-size: .9rem; color: var(--muted); }
+
+.claims { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.claim { display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.claim .mark { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .95rem; }
+.claim.ok .mark { background: var(--ok-t); color: var(--ok); }
+.claim.bad .mark { background: var(--bad-t); color: var(--bad); }
+.claim.warn .mark { background: var(--warn-t); color: var(--warn); }
+.claim.wait .mark { background: var(--code-bg); color: var(--muted); }
+.claim strong { display: block; }
+.claim .detail { font-size: .9rem; color: var(--ink2); overflow-wrap: anywhere; }
+
+.err { border: 1px solid var(--bad); background: var(--bad-t); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.err strong { color: var(--bad); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; gap: 10px; align-items: start; flex-wrap: wrap; }
+.pill { font-size: .78rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-t); color: var(--ok); }
+.pill.bad { background: var(--bad-t); color: var(--bad); }
+.pill.warn { background: var(--warn-t); color: var(--warn); }
+dl { display: grid; grid-template-columns: minmax(130px, auto) 1fr; gap: 6px 14px; margin: 0; font-size: .92rem; }
+dt { color: var(--muted); }
+dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { dl { grid-template-columns: 1fr; gap: 2px; } dd { margin-bottom: 8px; } }
+.src { font-family: var(--f-mono); font-size: .7rem; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; }
+.src.eth { background: var(--eth-t); color: var(--eth); }
+.src.ark { background: var(--arkiv-t); color: var(--arkiv); }
+
+.verify { display: flex; flex-direction: column; gap: 14px; }
+.step { display: flex; flex-direction: column; gap: 6px; }
+pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px; overflow-x: auto; font-family: var(--f-mono); font-size: .8rem; line-height: 1.5; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="eyebrow">Unlink · public audit · Ethereum Sepolia + Arkiv</div>
+    <h1>Unlink Audit</h1>
+    <p class="lede">Unlink makes claims about who may issue passes, which pass list is current, and which verification key scanners use. This page checks each claim live, straight from Ethereum and Arkiv, in your browser. Nothing here comes from the Unlink team's servers.</p>
+  </header>
+
+  <section aria-labelledby="src-h">
+    <h2 id="src-h">Data sources</h2>
+    <form class="sources" id="src-form">
+      <label for="sepolia-rpc">Sepolia RPC URL<input id="sepolia-rpc" type="url" required spellcheck="false" autocomplete="off"></label>
+      <label for="arkiv-rpc">Arkiv RPC URL<input id="arkiv-rpc" type="url" required spellcheck="false" autocomplete="off"></label>
+      <div><button type="submit" id="reload">Check again</button></div>
+    </form>
+    <p class="status-line" id="status" role="status">Loading…</p>
+  </section>
+
+  <section aria-labelledby="claims-h">
+    <h2 id="claims-h">The claims, checked</h2>
+    <div id="errors"></div>
+    <ul class="claims" id="claims"></ul>
+  </section>
+
+  <section aria-labelledby="iss-h">
+    <h2 id="iss-h">Issuers</h2>
+    <p class="muted">Every address the Registry authority ever added. A suspended issuer can never be re-added. <span class="src eth">chain</span> values come from the Registry contract, <span class="src ark">arkiv</span> values from entities whose creator and owner are that issuer.</p>
+    <div class="cards" id="issuers"></div>
+  </section>
+
+  <section aria-labelledby="reg-h">
+    <h2 id="reg-h">Registry and verification key</h2>
+    <div class="cards" id="registry"></div>
+  </section>
+
+  <section aria-labelledby="verify-h" class="verify">
+    <h2 id="verify-h">Verify this yourself</h2>
+    <div class="step">
+      <h3>1. Read the Registry on Etherscan</h3>
+      <p>Open the verified contract and call <span class="mono">issuers()</span> and <span class="mono">issuerState(address)</span>. Compare <span class="mono">latestRoot</span> and <span class="mono">latestRootId</span> with the issuer card above.</p>
+      <p class="row"><a id="link-read" target="_blank" rel="noopener noreferrer">Contract (Read)</a> · <a id="link-events" target="_blank" rel="noopener noreferrer">Events log</a></p>
+    </div>
+    <div class="step">
+      <h3>2. Ask Arkiv for the newest signed root</h3>
+      <p>Its <span class="mono">root</span> must equal the on-chain <span class="mono">latestRoot</span>, and its <span class="mono">signature</span> must recover to the issuer.</p>
+      <pre id="curl-arkiv"></pre>
+      <div class="row"><button class="ghost" type="button" data-copy="curl-arkiv">Copy command</button><span class="muted" id="copy-note" role="status"></span></div>
+    </div>
+    <div class="step">
+      <h3>3. Same check from a terminal with Foundry</h3>
+      <pre id="cast-cmd"></pre>
+      <div class="row"><button class="ghost" type="button" data-copy="cast-cmd">Copy command</button></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>This page uses ethers 6.17.0 from cdnjs (pinned with a subresource-integrity hash) and talks only to the two RPC URLs above. No accounts, no wallet, no cookies, no stored data.</p>
+    <p>Source: <span class="mono">audit/index.html</span> in the Unlink repository (MIT).</p>
+  </footer>
+</div>
+
+<script>
+/*AUDIT-LOGIC-START*/
+// Deployment facts (deployments.json, SPEC §9). PINNED_VK_SHA256 must equal circuits/artifacts/manifest.json's
+// verification_key.json hash and the scanner's BuildConfig.VK_HASH (checked by the M10 preflight).
+const CONFIG = {
+  chainId: 11155111,
+  registry: "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+  authority: "0x153d390680704090AaA24657697f15e6b91Da23f",
+  deployBlock: 12071909,
+  explorer: "https://sepolia.etherscan.io",
+  sepoliaRpc: "https://ethereum-sepolia-rpc.publicnode.com",
+  arkivRpc: "https://rpc.rabdi.db-chain.testnet.arkiv.network",
+  PINNED_VK_SHA256: "59cb8b11b9acef7604fa2e4a0157320a55b77c5449c2e034b5f87896a29497ef",
+  ROOT_TTL: 36 * 3600,
+  LOG_CHUNK: 9000,
+};
+
+const REGISTRY_ABI = [
+  "function issuers() view returns (address[])",
+  "function issuerState(address) view returns (bool active, uint64 floor, bytes32 latestRoot, uint64 latestRootId, uint64 latestPostedAt)",
+  "function minRootInterval() view returns (uint64)",
+  "function authority() view returns (address)",
+  "function rootCount() view returns (uint64)",
+  "event IssuerAdded(address indexed issuer)",
+  "event IssuerSuspended(address indexed issuer)",
+  "event RootPosted(address indexed issuer, uint64 indexed rootId, bytes32 root, uint64 postedAt)",
+  "event FloorRaised(address indexed issuer, uint64 oldFloor, uint64 newFloor)",
+];
+
+/** Everything public about the Registry: state, plus every event since deployment (read in chunks). */
+async function loadChain(rpcUrl) {
+  const provider = new ethers.JsonRpcProvider(rpcUrl, CONFIG.chainId, { staticNetwork: true });
+  const chainId = Number(await provider.send("eth_chainId", []));
+  if (chainId !== CONFIG.chainId) throw new Error(`RPC is on chain ${chainId}, expected ${CONFIG.chainId} (Sepolia)`);
+  const code = await provider.getCode(CONFIG.registry);
+  if (!code || code === "0x") throw new Error("no contract code at the Registry address");
+  const reg = new ethers.Contract(CONFIG.registry, REGISTRY_ABI, provider);
+  // One consistent snapshot a few blocks below the head: public RPCs are load-balanced, and a backend can lag the
+  // head another backend just reported.
+  const head = (await provider.getBlockNumber()) - 3;
+  const at = { blockTag: head };
+  const [minRootInterval, authority, rootCount, issuers] = await Promise.all([
+    reg.minRootInterval(at), reg.authority(at), reg.rootCount(at), reg.issuers(at),
+  ]);
+  const logs = [];
+  for (let from = CONFIG.deployBlock; from <= head; from += CONFIG.LOG_CHUNK) {
+    const to = Math.min(head, from + CONFIG.LOG_CHUNK - 1);
+    logs.push(...(await provider.getLogs({ address: CONFIG.registry, fromBlock: from, toBlock: to })));
+  }
+  const events = { added: [], suspended: [], roots: [], floors: [] };
+  for (const log of logs) {
+    const ev = reg.interface.parseLog(log);
+    if (!ev) continue;
+    const at = { block: log.blockNumber, index: log.index, tx: log.transactionHash };
+    const who = ev.args.issuer.toLowerCase();
+    if (ev.name === "IssuerAdded") events.added.push({ issuer: who, ...at });
+    if (ev.name === "IssuerSuspended") events.suspended.push({ issuer: who, ...at });
+    if (ev.name === "RootPosted") events.roots.push({ issuer: who, rootId: Number(ev.args.rootId), root: ev.args.root, postedAt: Number(ev.args.postedAt), ...at });
+    if (ev.name === "FloorRaised") events.floors.push({ issuer: who, oldFloor: Number(ev.args.oldFloor), newFloor: Number(ev.args.newFloor), ...at });
+  }
+  const states = {};
+  for (const a of issuers) {
+    const s = await reg.issuerState(a, at);
+    states[a.toLowerCase()] = { active: s.active, floor: Number(s.floor), latestRoot: s.latestRoot, latestRootId: Number(s.latestRootId), latestPostedAt: Number(s.latestPostedAt) };
+  }
+  return {
+    head, minRootInterval: Number(minRootInterval), authority: authority.toLowerCase(), rootCount: Number(rootCount),
+    issuers: issuers.map((a) => a.toLowerCase()), states, events,
+  };
+}
+
+/** Roots closer together than minRootInterval. The contract skips the interval once after a floor raise. */
+function rootRate(roots, floors, minInterval) {
+  const sorted = [...roots].sort((a, b) => a.rootId - b.rootId);
+  let fastest = null;
+  const violations = [];
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = sorted[i].postedAt - sorted[i - 1].postedAt;
+    const afterFloorRaise = floors.some((f) => f.block > sorted[i - 1].block && f.block <= sorted[i].block);
+    if (!afterFloorRaise && (fastest === null || gap < fastest)) fastest = gap;
+    if (gap < minInterval && !afterFloorRaise) violations.push({ from: sorted[i - 1].rootId, to: sorted[i].rootId, gap });
+  }
+  return { count: sorted.length, fastest, violations };
+}
+
+/** One arkiv_query; keeps only rows whose creator AND owner are `writer` (anyone can create Arkiv entities). */
+async function arkivRows(arkivUrl, query, writer, limit = "0xa") {
+  const body = { jsonrpc: "2.0", id: 1, method: "arkiv_query", params: [query, { select: { key: true, owner: true, creator: true, attributes: true }, limit }] };
+  const res = await fetch(arkivUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), referrerPolicy: "no-referrer", credentials: "omit" });
+  if (!res.ok) throw new Error(`Arkiv HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(`Arkiv: ${json.error.message}`);
+  const w = writer.toLowerCase();
+  return (json.result?.data ?? [])
+    .filter((r) => String(r.creator).toLowerCase() === w && String(r.owner).toLowerCase() === w)
+    .map((r) => Object.fromEntries(r.attributes.map((a) => [a.name, a.value])));
+}
+
+function arkivBase(type, writer) {
+  const w = writer.toLowerCase();
+  return `app = str('unlink') AND type = str('${type}') AND issuer = addr(${w}) AND $creator = addr(${w}) AND $owner = addr(${w})`;
+}
+
+const u64 = (v) => Number(BigInt(v));
+
+/** The SPEC §3.3 digest; the signature is EIP-191 personal_sign over its 32 bytes ("\n32"). */
+function rootDigest(sr) {
+  return ethers.solidityPackedKeccak256(
+    ["string", "uint256", "address", "address", "uint64", "bytes32", "uint32", "uint32"],
+    ["UNLINK-ROOT-v1", CONFIG.chainId, CONFIG.registry, sr.issuer, sr.rootId, sr.root, sr.issuedAt, sr.expiresAt],
+  );
+}
+
+async function loadArkiv(arkivUrl, issuers) {
+  const out = { perIssuer: {}, vk: null };
+  for (const iss of issuers) {
+    const [sr] = await arkivRows(arkivUrl, `${arkivBase("unlink.signedRoot", iss)} ORDER BY rootId:u64 DESC`, iss);
+    const [list] = await arkivRows(arkivUrl, `${arkivBase("unlink.scannerList", iss)} ORDER BY listNo:u64 DESC`, iss);
+    const p = {};
+    if (sr) {
+      p.signedRoot = {
+        issuer: iss, rootId: u64(sr.rootId), root: sr.root, issuedAt: u64(sr.issuedAt), expiresAt: u64(sr.expiresAt),
+        leafCount: u64(sr.leafCount), revSeq: u64(sr.revSeq), chainId: u64(sr.chainId), registry: String(sr.registry).toLowerCase(),
+        txHash: sr.txHash, signature: sr.signature,
+      };
+      try {
+        p.signedRoot.signer = ethers.verifyMessage(ethers.getBytes(rootDigest(p.signedRoot)), p.signedRoot.signature).toLowerCase();
+      } catch (e) {
+        p.signedRoot.signer = null;
+      }
+    }
+    if (list) {
+      const hex = String(list.keys).replace(/^0x/, "");
+      p.scannerList = { listNo: u64(list.listNo), keys: hex.match(/.{40}/g)?.map((k) => "0x" + k) ?? [] };
+    }
+    out.perIssuer[iss] = p;
+  }
+  const [vk] = await arkivRows(arkivUrl, `${arkivBase("unlink.verifyKey", CONFIG.authority)} AND vkSha256 = str('${CONFIG.PINNED_VK_SHA256}')`, CONFIG.authority);
+  if (vk) out.vk = { labelled: String(vk.vkSha256), computed: ethers.sha256(ethers.getBytes(vk.vk)).slice(2) };
+  return out;
+}
+
+/** Turns the raw reads into the checklist a judge reads first. ok: true / false / null (couldn't check). */
+function buildClaims(chain, arkiv, nowSec) {
+  const claims = [];
+  if (!chain) claims.push({ ok: null, title: "Registry, issuers and roots", detail: "Sepolia could not be read; see the error above." });
+  else claims.push(...chainClaims(chain, arkiv, nowSec));
+  if (arkiv) {
+    const vk = arkiv.vk;
+    claims.push({ ok: !!vk && vk.computed === CONFIG.PINNED_VK_SHA256 && vk.labelled === CONFIG.PINNED_VK_SHA256, title: "Scanners use the published verification key", detail: vk ? `sha256 of the authority's VerifyKey = ${vk.computed.slice(0, 16)}… (pinned ${CONFIG.PINNED_VK_SHA256.slice(0, 16)}…)` : "no VerifyKey with the pinned hash from the authority on Arkiv" });
+  }
+  return claims;
+}
+
+function chainClaims(chain, arkiv, nowSec) {
+  const claims = [];
+  claims.push({ ok: true, title: "The Registry contract is deployed on Sepolia", detail: `${CONFIG.registry} · ${chain.issuers.length} issuer(s) · ${chain.rootCount} root(s) posted` });
+  claims.push({ ok: chain.authority === CONFIG.authority.toLowerCase(), title: "Only the stated authority can add or suspend issuers", detail: `authority() = ${chain.authority}` });
+  for (const iss of chain.issuers) {
+    const st = chain.states[iss];
+    const short = iss.slice(0, 10) + "…";
+    const evSuspended = chain.events.suspended.some((e) => e.issuer === iss);
+    claims.push({ ok: st.active && !evSuspended, title: `Issuer ${short} is active`, detail: st.active ? `added in block ${chain.events.added.find((e) => e.issuer === iss)?.block ?? "?"}, never suspended` : "suspended: its roots are no longer accepted" });
+    const rate = rootRate(chain.events.roots.filter((r) => r.issuer === iss), chain.events.floors.filter((f) => f.issuer === iss), chain.minRootInterval);
+    claims.push({ ok: rate.violations.length === 0, title: `Issuer ${short} posts at most one root per ${chain.minRootInterval} s`, detail: rate.count < 2 ? `${rate.count} root(s) posted` : `${rate.count} roots; fastest gap ${rate.fastest} s; ${rate.violations.length} too fast` });
+    if (!arkiv) continue;
+    const sr = arkiv.perIssuer[iss]?.signedRoot;
+    if (!sr) {
+      claims.push({ ok: false, title: `Issuer ${short}'s latest root is published on Arkiv`, detail: "no SignedRoot from this issuer found on Arkiv" });
+      continue;
+    }
+    const same = sr.rootId === st.latestRootId && sr.root.toLowerCase() === st.latestRoot.toLowerCase();
+    claims.push({ ok: same, title: `Issuer ${short}'s latest root is published on Arkiv`, detail: same ? `rootId ${sr.rootId} on both, root ${sr.root.slice(0, 12)}…` : `chain rootId ${st.latestRootId}, Arkiv rootId ${sr.rootId}` });
+    claims.push({ ok: sr.signer === iss && sr.registry === CONFIG.registry.toLowerCase() && sr.chainId === CONFIG.chainId, title: "That root is signed by the issuer", detail: sr.signer ? `signature recovers to ${sr.signer}` : "signature does not recover" });
+    const ttlOk = sr.expiresAt - sr.issuedAt === CONFIG.ROOT_TTL && sr.issuedAt === st.latestPostedAt;
+    const left = sr.expiresAt - nowSec;
+    claims.push({ ok: !ttlOk ? false : left > 6 * 3600 ? true : left > 0 ? "warn" : false, title: "Passes on that root are still accepted", detail: !ttlOk ? "expiry is not exactly issuedAt + 36 h, or issuedAt ≠ on-chain postedAt" : left > 0 ? "a root lives exactly 36 h after it is posted · " : "the issuer must post a new root · ", countdown: ttlOk ? sr.expiresAt : undefined });
+  }
+  return claims;
+}
+
+function fmtDuration(s) {
+  s = Math.max(0, Math.floor(s));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${String(m).padStart(2, "0")} min`;
+  return `${m} min ${String(x).padStart(2, "0")} s`;
+}
+/*AUDIT-LOGIC-END*/
+
+// ---------------- rendering (browser only) ----------------
+const $ = (id) => document.getElementById(id);
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (/^(data-|aria-)/.test(k) || ["href", "target", "rel", "role"].includes(k)) el.setAttribute(k, v);
+    else el[k] = v;
+  }
+  for (const kid of kids.flat()) if (kid !== null && kid !== undefined) el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const link = (href, text) => h("a", { href, target: "_blank", rel: "noopener noreferrer" }, text);
+const addr = (a) => link(`${CONFIG.explorer}/address/${a}`, a);
+const src = (kind) => h("span", { class: `src ${kind}` }, kind === "eth" ? "chain" : "arkiv");
+const when = (sec) => (sec ? new Date(sec * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—");
+
+function errorCard(source, err, hint) {
+  return h("div", { class: "err", role: "alert" }, h("strong", {}, `${source} could not be read`), h("span", {}, String(err?.message ?? err)), h("span", { class: "muted" }, hint));
+}
+
+function renderClaims(claims) {
+  const ul = $("claims");
+  ul.replaceChildren(...claims.map((c) => {
+    const cls = c.ok === true ? "ok" : c.ok === "warn" ? "warn" : c.ok === false ? "bad" : "wait";
+    const mark = c.ok === true ? "✓" : c.ok === "warn" ? "!" : c.ok === false ? "✗" : "?";
+    const detail = h("span", { class: "detail" }, c.detail);
+    if (c.countdown) detail.append(h("span", { "data-expires": String(c.countdown) }, ""));
+    return h("li", { class: `claim ${cls}` }, h("span", { class: "mark", "aria-hidden": "true" }, mark),
+      h("div", {}, h("strong", {}, c.title), detail));
+  }));
+}
+
+function renderIssuers(chain, arkiv) {
+  const box = $("issuers");
+  if (!chain) { box.replaceChildren(h("p", { class: "muted" }, "Waiting for Sepolia.")); return; }
+  box.replaceChildren(...chain.issuers.map((iss) => {
+    const st = chain.states[iss];
+    const p = arkiv?.perIssuer[iss] ?? {};
+    const sr = p.signedRoot;
+    const rate = rootRate(chain.events.roots.filter((r) => r.issuer === iss), chain.events.floors.filter((f) => f.issuer === iss), chain.minRootInterval);
+    const exp = h("dd", {}, sr ? `${when(sr.expiresAt)}` : "—");
+    const left = h("dd", {}, "—");
+    if (sr) left.dataset.expires = String(sr.expiresAt);
+    const rows = [
+      ["Status", h("span", { class: `pill ${st.active ? "ok" : "bad"}` }, st.active ? "Active" : "Suspended"), "eth"],
+      ["Floor (lowest valid rootId)", st.floor, "eth"],
+      ["Latest rootId", st.latestRootId, "eth"],
+      ["Latest root", h("span", { class: "mono" }, st.latestRoot), "eth"],
+      ["Posted", when(st.latestPostedAt), "eth"],
+      ["Roots posted", `${rate.count}${rate.fastest !== null ? ` · fastest gap ${rate.fastest} s (limit ${chain.minRootInterval} s)` : ""}`, "eth"],
+      ["Newest signed root", sr ? `rootId ${sr.rootId}` : "not found", "ark"],
+      ["Signature recovers to", sr?.signer ? h("span", { class: "mono" }, sr.signer) : "—", "ark"],
+      ["Expires", null, "ark", exp],
+      ["Time left", null, "ark", left],
+      ["Passes in the tree", sr ? sr.leafCount : "—", "ark"],
+      ["Revocation records", sr ? sr.revSeq : "—", "ark"],
+      ["Approved scanners", p.scannerList ? h("span", { class: "mono" }, `list ${p.scannerList.listNo}: ${p.scannerList.keys.join(", ")}`) : "none published", "ark"],
+    ];
+    const dl = h("dl", {});
+    for (const [k, v, s, ddEl] of rows) {
+      dl.append(h("dt", {}, k, src(s)));
+      dl.append(ddEl ?? h("dd", {}, v));
+    }
+    if (sr?.txHash) dl.append(h("dt", {}, "postRoot transaction", src("eth")), h("dd", {}, link(`${CONFIG.explorer}/tx/${sr.txHash}`, sr.txHash.slice(0, 18) + "…")));
+    return h("article", { class: "card" }, h("div", { class: "card-head" }, h("h3", {}, "Issuer"), h("span", { class: "mono" }, addr(iss))), dl);
+  }));
+}
+
+function renderRegistry(chain, arkiv) {
+  const cards = [];
+  const dl = h("dl", {},
+    h("dt", {}, "Contract"), h("dd", { class: "mono" }, addr(CONFIG.registry)),
+    h("dt", {}, "Authority"), h("dd", { class: "mono" }, chain ? addr(chain.authority) : "—"),
+    h("dt", {}, "Minimum root interval"), h("dd", {}, chain ? `${chain.minRootInterval} s (immutable)` : "—"),
+    h("dt", {}, "Roots posted, all issuers"), h("dd", {}, chain ? chain.rootCount : "—"),
+    h("dt", {}, "Floor raises"), h("dd", {}, chain ? chain.events.floors.length : "—"),
+    h("dt", {}, "Suspensions"), h("dd", {}, chain ? chain.events.suspended.length : "—"),
+    h("dt", {}, "Read at block"), h("dd", {}, chain ? chain.head : "—"));
+  cards.push(h("article", { class: "card" }, h("div", { class: "card-head" }, h("h3", {}, "Registry"), h("span", { class: "src eth" }, "chain")), dl));
+  const vk = arkiv?.vk;
+  const ok = !!vk && vk.computed === CONFIG.PINNED_VK_SHA256;
+  const dl2 = h("dl", {},
+    h("dt", {}, "Pinned in the apps"), h("dd", { class: "mono" }, CONFIG.PINNED_VK_SHA256),
+    h("dt", {}, "sha256 of Arkiv copy"), h("dd", { class: "mono" }, vk ? vk.computed : "not found"),
+    h("dt", {}, "Written by"), h("dd", { class: "mono" }, addr(CONFIG.authority)));
+  cards.push(h("article", { class: "card" }, h("div", { class: "card-head" }, h("h3", {}, "Verification key"),
+    h("span", { class: `pill ${arkiv ? (ok ? "ok" : "bad") : "warn"}` }, arkiv ? (ok ? "✓ matches" : "✗ mismatch") : "not checked")), dl2));
+  $("registry").replaceChildren(...cards);
+}
+
+function renderVerify(chain) {
+  $("link-read").href = `${CONFIG.explorer}/address/${CONFIG.registry}#readContract`;
+  $("link-events").href = `${CONFIG.explorer}/address/${CONFIG.registry}#events`;
+  const iss = chain?.issuers?.[0] ?? "<issuer>";
+  const q = `${arkivBase("unlink.signedRoot", iss)} ORDER BY rootId:u64 DESC`;
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "arkiv_query", params: [q, { select: { key: true, owner: true, creator: true, attributes: true }, limit: "0x1" }] });
+  $("curl-arkiv").textContent = `curl -s -X POST ${$("arkiv-rpc").value} \\\n  -H 'content-type: application/json' \\\n  --data '${body.replace(/'/g, `'"'"'`)}'`;
+  $("cast-cmd").textContent = `cast call ${CONFIG.registry} \\\n  "issuerState(address)(bool,uint64,bytes32,uint64,uint64)" ${iss} \\\n  --rpc-url ${$("sepolia-rpc").value}`;
+}
+
+function tick() {
+  const now = Math.floor(Date.now() / 1000);
+  for (const el of document.querySelectorAll("[data-expires]")) {
+    const left = Number(el.dataset.expires) - now;
+    el.textContent = left > 0 ? `${fmtDuration(left)} left` : `expired ${fmtDuration(-left)} ago`;
+  }
+}
+
+let running = false;
+async function run() {
+  if (running) return;
+  running = true;
+  const sepolia = $("sepolia-rpc").value.trim();
+  const arkivUrl = $("arkiv-rpc").value.trim();
+  const params = new URLSearchParams();
+  if (sepolia !== CONFIG.sepoliaRpc) params.set("sepolia", sepolia);
+  if (arkivUrl !== CONFIG.arkivRpc) params.set("arkiv", arkivUrl);
+  history.replaceState(null, "", params.toString() ? `?${params}` : location.pathname);
+  $("status").textContent = "Reading Sepolia and Arkiv…";
+  $("errors").replaceChildren();
+  renderClaims([{ ok: null, title: "Checking…", detail: "reading public data" }]);
+  let chain = null, arkiv = null;
+  const errors = [];
+  try {
+    chain = await loadChain(sepolia);
+  } catch (e) {
+    errors.push(errorCard("Ethereum Sepolia", e, "Try another Sepolia RPC URL above, for example https://sepolia.gateway.tenderly.co."));
+  }
+  try {
+    arkiv = await loadArkiv(arkivUrl, chain ? chain.issuers : []);
+  } catch (e) {
+    errors.push(errorCard("Arkiv", e, "Check the Arkiv RPC URL above; the public Rabdi endpoint is rate limited, so wait a few seconds and try again."));
+  }
+  $("errors").replaceChildren(...errors);
+  renderClaims(buildClaims(chain, arkiv, Math.floor(Date.now() / 1000)));
+  renderIssuers(chain, arkiv);
+  renderRegistry(chain, arkiv);
+  renderVerify(chain);
+  tick();
+  $("status").textContent = `Last checked ${new Date().toLocaleTimeString()}${chain ? ` at Sepolia block ${chain.head}` : ""}.`;
+  running = false;
+}
+
+if (typeof document !== "undefined") {
+  const qp = new URLSearchParams(location.search);
+  $("sepolia-rpc").value = qp.get("sepolia") || CONFIG.sepoliaRpc;
+  $("arkiv-rpc").value = qp.get("arkiv") || CONFIG.arkivRpc;
+  $("src-form").addEventListener("submit", (e) => { e.preventDefault(); run(); });
+  for (const b of document.querySelectorAll("[data-copy]")) {
+    b.addEventListener("click", async () => {
+      const pre = $(b.dataset.copy);
+      try {
+        await navigator.clipboard.writeText(pre.textContent);
+        $("copy-note").textContent = "Copied.";
+      } catch {
+        const r = document.createRange(); r.selectNodeContents(pre);
+        const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+        $("copy-note").textContent = "Selected; press Ctrl+C to copy.";
+      }
+    });
+  }
+  renderVerify(null);
+  setInterval(tick, 1000);
+  if (typeof ethers === "undefined") {
+    $("errors").replaceChildren(errorCard("ethers (cdnjs)", "the library did not load or failed its integrity check", "Reload the page; if it persists, cdnjs may be blocked on this network."));
+    $("status").textContent = "Stopped: ethers is missing.";
+  } else {
+    run();
+  }
+}
+</script>
+</body>
+</html>

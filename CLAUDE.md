@@ -96,6 +96,8 @@ Load these files on demand only; don't read them all every session:
 #            node apps/passenger/record-arkiv.mjs   (re-record real Arkiv/Sepolia responses for RefreshTest)
 #            demo: cd issuer && npm start; adb reverse tcp:3000 tcp:3000; buy in app; POST /admin/publish-root; Refresh
 # qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
+# audit:     node scripts/check-audit.mjs   (runs audit/index.html's own logic vs LIVE Sepolia + Arkiv; checks the ethers SRI; exit 1 on any false claim)
+#            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/Unlink/ (Pages workflow deploys audit/ only)
 # fixtures:  cd issuer && npm run sign-fixtures   (fixtures/sign-vectors.json + qr-vectors.json, test key pk=1)
 #            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 69 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
 # scanner:   cd apps/scanner && ./gradlew :verifier:test   (JVM; all fixtures/qr + vectors + NoNetworkTest; needs circuits npm ci for snarkjs)
