@@ -6,8 +6,11 @@ import type { IssuerDb } from "./db.ts";
  *
  * Purchases arriving close together share one root: the first purchase arms a single timer, later ones ride on it.
  * The Registry allows one root per issuer per minRootInterval (60 s in the demo deployment, 15 min planned for
- * production), so the timer never fires before that interval has passed. In production that makes this "at most one
- * root per interval while there are new passes", the same rate bound SPEC §8 already assumes.
+ * production), so the timer never fires before that interval has passed.
+ *
+ * Privacy cost (SPEC §8, "Anonymity set of a root"): at low traffic the root published right after a purchase is held
+ * only by the buyer until other phones refresh, so it narrows who the buyer is. Production should publish on a fixed
+ * ROOT_INTERVAL cadence instead, so that a root follows the clock rather than a purchase.
  */
 export const AUTO_PUBLISH_DELAY = 30;
 

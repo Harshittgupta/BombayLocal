@@ -1,5 +1,15 @@
-# HTTPS for the hosted issuer. setup.sh replaces __DOMAIN__. There is deliberately no `log` directive: Caddy then
-# writes no access log, so no client IP is ever recorded (invariant 1). The issuer itself trusts only this proxy.
+# HTTPS for the hosted issuer. setup.sh replaces __DOMAIN__. No client IP may ever be recorded (invariant 1):
+# - there is no `log` directive in the site, so Caddy writes no access log;
+# - the default logger drops http.log.error and the reverse proxy's own logs, which otherwise record the client
+#   address and request headers whenever the issuer is down (502s during a restart). Certificate (tls) and startup
+#   logs stay, so HTTPS problems can still be diagnosed.
+{
+	log default {
+		output stderr
+		exclude http.log.error http.handlers.reverse_proxy
+	}
+}
+
 __DOMAIN__ {
 	encode gzip
 	reverse_proxy 127.0.0.1:3000

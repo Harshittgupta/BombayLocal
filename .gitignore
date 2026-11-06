@@ -28,3 +28,8 @@ keystore.properties
 
 # Logs
 *.log
+
+# Databases (issuer state, backups): never committed, anywhere in the repo
+*.db
+*.db-shm
+*.db-wal

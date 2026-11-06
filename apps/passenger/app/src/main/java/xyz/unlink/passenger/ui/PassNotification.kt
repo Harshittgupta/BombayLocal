@@ -83,6 +83,7 @@ object PassNotification {
         ) return
 
         val nowSec = System.currentTimeMillis() / 1000
+        val boundaryMs = (nowSec / PreProver.EPOCH + 1) * PreProver.EPOCH * 1000
         val epoch = nowSec / PreProver.EPOCH
         val qr = repo.anyCachedProof(epoch)
         val picture = qr?.let { picture(epoch, it) }
@@ -104,6 +105,10 @@ object PassNotification {
                 .setOnlyAlertOnce(true)
             if (picture != null) {
                 b.setContentText("Tap to show your pass")
+                // Never leave a stale code showing: if no re-post arrives (process killed, alarm deferred), the system
+                // removes the notification 110 s after the epoch boundary, while scanners still accept the old epoch
+                // (SPEC §5 step 2, SKEW = 120 s). The next screen-on, unlock or alarm posts it again with the new code.
+                b.setTimeoutAfter(boundaryMs - System.currentTimeMillis() + 110_000)
                 b.style = Notification.BigPictureStyle()
                     .bigPicture(picture)
                     .bigLargeIcon(null as Bitmap?)
@@ -116,7 +121,6 @@ object PassNotification {
         }
         // The same picture on the public version, or it vanishes where the lock screen shows only public versions.
         nm.notify(ID, build().setPublicVersion(build().build()).build())
-        val boundaryMs = (epoch + 1) * PreProver.EPOCH * 1000
         scheduleTick(context, boundaryMs)
         // While our process is alive and the CPU awake (screen on, when someone can actually look), also re-post right
         // at the boundary: the system may defer the inexact alarm by several minutes. Uptime-based, so it simply

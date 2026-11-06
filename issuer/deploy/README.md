@@ -84,8 +84,8 @@ uploads work from any network, with no cable and no laptop.
 
 ## Updating, backups, rules
 - **Update:** push to `main`, then run `ssh … 'sudo sh /opt/unlink/issuer/deploy/update.sh'`.
-- **Backup:** `SSH_KEY=… sh issuer/deploy/push.sh ubuntu@<public-ip> backup` writes `issuer-backup-<date>.db` on the
-  laptop.
+- **Backup:** `SSH_KEY=… sh issuer/deploy/push.sh ubuntu@<public-ip> backup` writes `~/unlink-backups/issuer-backup-<date>.db`
+  on the laptop (outside the repo, mode 600).
 - **Never run `npm start` with the live issuer key anywhere else while the VM is up.** Two writers would post
   conflicting roots.
 - **The database is the issuer's memory.** Losing it means the issuer cannot continue its tree. Back it up before risky

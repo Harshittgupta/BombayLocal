@@ -3,7 +3,7 @@
 # printing a secret.
 #   sh issuer/deploy/push.sh <user@vm> secrets   .env -> /etc/unlink/issuer.env (only the keys the issuer needs)
 #   sh issuer/deploy/push.sh <user@vm> db        issuer/issuer.db -> /var/lib/unlink/issuer.db, then starts the service
-#   sh issuer/deploy/push.sh <user@vm> backup    a consistent copy of the live database -> issuer-backup-<date>.db
+#   sh issuer/deploy/push.sh <user@vm> backup    a consistent copy of the live database -> ~/unlink-backups/ (mode 600)
 # Optional: SSH_KEY=~/.ssh/unlink_oci to pick the key.
 set -eu
 HOST="${1:?usage: push.sh <user@vm> secrets|db|backup}"
@@ -39,9 +39,12 @@ case "$WHAT" in
     echo "Database installed and the issuer started. Keep the laptop issuer stopped from now on."
     ;;
   backup)
-    out="issuer-backup-$(date +%Y%m%d-%H%M).db"
+    # Outside the repo, owner-only: the database holds idCommitments, the purchase-leaf map and scan nullifiers.
+    umask 077
+    mkdir -p "$HOME/unlink-backups"
+    out="$HOME/unlink-backups/issuer-backup-$(date +%Y%m%d-%H%M).db"
     ssh $SSH_OPTS "$HOST" 'sudo -u unlink /usr/local/bin/node -e "const { DatabaseSync } = require(\"node:sqlite\"); const d = new DatabaseSync(\"/var/lib/unlink/issuer.db\"); d.exec(\"VACUUM INTO '"'"'/var/lib/unlink/backup.db'"'"'\"); d.close();" && sudo cat /var/lib/unlink/backup.db && sudo rm -f /var/lib/unlink/backup.db' > "$out"
-    echo "Backup written to $out (gitignored: *.db)."
+    echo "Backup written to $out (outside the repo, mode 600)."
     ;;
   *) echo "usage: push.sh <user@vm> secrets|db|backup" >&2; exit 1 ;;
 esac

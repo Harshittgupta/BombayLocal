@@ -225,3 +225,19 @@ describe("purchase abuse limit (src/ratelimit.ts)", () => {
     await app.close();
   });
 });
+
+describe("no client address in issuer logs (invariant 1)", () => {
+  it("11. a request object in a log line keeps method + path only: no IP, port or headers", () => {
+    const sink = new PassThrough();
+    let out = "";
+    sink.on("data", (b) => (out += b.toString()));
+    const log = makeLogger(sink);
+    // The shape Fastify passes when it logs a request (e.g. its error handler, if request logging is ever enabled).
+    const req = { method: "POST", url: "/purchase?x=1", ip: "203.0.113.9", socket: { remoteAddress: "203.0.113.9", remotePort: 51515 },
+      headers: { "x-forwarded-for": "203.0.113.9", "x-admin-token": "s3cret" } };
+    log.error({ req, res: { statusCode: 500, headers: { a: 1 } } }, "boom");
+    expect(out).toContain("boom");
+    expect(out).toContain("/purchase");
+    for (const leak of ["203.0.113.9", "51515", "s3cret", "x-forwarded-for", "?x=1"]) expect(out).not.toContain(leak);
+  });
+});

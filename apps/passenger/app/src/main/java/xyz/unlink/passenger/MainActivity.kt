@@ -100,7 +100,9 @@ class MainActivity : ComponentActivity() {
      */
     private suspend fun refreshUntilActive() {
         refreshOnce()
-        for (waitMs in longArrayOf(45_000, 45_000, 60_000, 60_000)) {
+        // At most one refresh per ROOT_INTERVAL (SPEC §3.1), and 4 tries at most: about 4 minutes in the demo deployment.
+        val waitMs = maxOf(BuildConfig.ROOT_INTERVAL * 1000, 60_000L)
+        repeat(4) {
             if (PassRepository(this).lastRefresh()?.status != PassStatus.WAITING) return
             delay(waitMs)
             refreshOnce()

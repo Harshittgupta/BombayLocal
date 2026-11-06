@@ -11,7 +11,7 @@ ConditionPathExists=/var/lib/unlink/issuer.db
 User=unlink
 Group=unlink
 WorkingDirectory=/opt/unlink/issuer
-# Secrets: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP, ARKIV_* (pushed by push-secrets.sh, mode 640).
+# Secrets: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP, ARKIV_* (pushed by `push.sh <vm> secrets`, mode 640).
 EnvironmentFile=/etc/unlink/issuer.env
 Environment=NODE_ENV=production ISSUER_DB_PATH=/var/lib/unlink/issuer.db ISSUER_HOST=127.0.0.1 ISSUER_PORT=3000 ISSUER_TRUST_PROXY=127.0.0.1
 ExecStart=/bin/sh /opt/unlink/issuer/start.sh

@@ -91,7 +91,7 @@ Load these files on demand only; don't read them all every session:
 #            backup: SSH_KEY=~/.ssh/unlink_oci sh issuer/deploy/push.sh ubuntu@130.210.32.36 backup;  logs: ssh ... 'journalctl -u unlink-issuer -n 50'
 #            NEVER `npm start` with the live ISSUER_PRIVATE_KEY while the VM runs (two writers = conflicting roots). Purchases auto-publish a root ~30-60 s later.
 #            publish now: curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://unlink-issuer.duckdns.org/admin/publish-root   (NOT `npm run publish-root`: the laptop issuer.db is retired)
-# arkiv:     cd issuer && npm run arkiv-roundtrip        (REAL Rabdi + Sepolia: publish, read back, rebuild == signed == on-chain root)
+# arkiv:     cd issuer && npm run arkiv-roundtrip        (pre-hosting only: now refuses, the publisher's single-writer guard sees the hosted tree)
 #            cd issuer && npm run arkiv-expiry           (2-minute entity, gone after its expiry block; ~2.5 min)
 # apps:      cd apps/passenger && ./gradlew :app:assembleDebug   (JAVA_HOME = JDK 21 root; local.properties sdk.dir)
 #            cd apps/passenger && ./gradlew :app:connectedDebugAndroidTest   (phone UNLOCKED + `adb shell svc power stayon usb`; 12 tests)

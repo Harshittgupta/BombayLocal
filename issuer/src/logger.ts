@@ -25,6 +25,12 @@ export function makeLogger(stream?: NodeJS.WritableStream) {
     {
       level: process.env.LOG_LEVEL ?? "info",
       redact: { paths: REDACT_PATHS, censor: "[redacted]" },
+      // Fastify's error handler logs `req`/`res` on failures. Keep only method + path: the default serializer would
+      // add the client address, port and headers (incl. x-admin-token), which must never reach a log (invariant 1).
+      serializers: {
+        req: (r: { method?: string; url?: string; routeOptions?: { url?: string } }) => ({ method: r.method, path: r.routeOptions?.url ?? r.url?.split("?")[0] }),
+        res: (r: { statusCode?: number }) => ({ statusCode: r.statusCode }),
+      },
     },
     stream as never,
   );

@@ -65,6 +65,18 @@ export async function publishRoot(ctx: PublisherCtx): Promise<PublishResult> {
     }
   }
 
+  // Single writer: exactly one database may publish for this issuer key. If the issuer's latest root on chain is not
+  // this database's latest root, another instance (e.g. the hosted issuer) is writing, or this database is stale or
+  // empty. Publishing from here would post a conflicting tree and Arkiv batches that phones reject, so refuse.
+  const chain = await registry.issuerState(deployment.issuer);
+  const mine = db.latestRoot();
+  if (chain.latestRootId !== (mine?.rootId ?? 0) || (mine && chain.latestRoot.toLowerCase() !== mine.root.toLowerCase())) {
+    throw new Error(
+      `this database's latest root is #${mine?.rootId ?? 0} but the issuer's on-chain latest is #${chain.latestRootId}: ` +
+        "another issuer instance is publishing, or this database is stale. Refusing to publish (issuer/deploy/README.md).",
+    );
+  }
+
   // Heal: if a previous run crashed between recordRoot and step 4, the latest root is on chain and recorded but its
   // SignedRoot is not on Arkiv, so phones cannot move to it. Re-publish it (idempotent: an identical entity is reused).
   const prev = db.latestRoot();

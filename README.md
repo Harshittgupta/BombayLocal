@@ -20,9 +20,10 @@ Offline, privacy-preserving transit pass verification for Mumbai suburban railwa
 
 ## Threat model and limitations
 
-The full table is in [SPEC.md §8](SPEC.md). Two limits come from showing the pass without unlocking:
+The full table is in [SPEC.md §8](SPEC.md). Three limits worth knowing up front:
 
 - **Whoever holds the phone can show the pass.** The pass works from the lock screen: the "Show pass" Quick Settings tile, and the ongoing notification, whose expanded view carries the current 10-minute code. Anyone holding the locked phone can therefore show a valid code for as long as cached codes last (about 2 hours). New codes are made only after an unlock.
+- **A fresh pass narrows its root.** The hosted issuer publishes a root about a minute after a purchase so the pass works quickly. At low traffic the buyer is then the only phone on that root until others refresh, so an issuer that knows who paid, working with a ticket checker, could link that buyer's scans until the next root (SPEC §8, "Anonymity set of a root"). Production should publish on a fixed schedule instead.
 - **Notification access can read the code.** An app the user has granted notification access can read the picture out of the notification. The code carries no identifier and expires with its 10-minute window, but within that window it is a valid pass. Users who don't want this can turn off the "Pass on lock screen" notification channel and use the tile instead.
 
 ## Path to production
