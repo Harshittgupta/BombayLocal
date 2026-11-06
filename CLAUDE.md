@@ -86,15 +86,18 @@ Load these files on demand only; don't read them all every session:
 #              --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args <authority> 60
 #            (use the publicnode RPC; the Alchemy key under-estimates creation gas. deployments.json has the live address)
 # issuer:    cd issuer && npm ci && npm test            (vitest; node:sqlite, real circuit proof)
-#            cd issuer && npm start                      (Fastify + 6 h heartbeat; reads ../.env: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP, ARKIV_*)
-#            cd issuer && npm run publish-root           (Arkiv batches/revocations -> postRoot on Sepolia via publicnode -> Arkiv SignedRoot)
+#            HOSTED: https://unlink-issuer.duckdns.org (Oracle Always Free VM 130.210.32.36, systemd + Caddy; issuer/deploy/README.md)
+#            update: ssh -i ~/.ssh/unlink_oci ubuntu@130.210.32.36 'sudo sh /opt/unlink/issuer/deploy/update.sh'   (after pushing to main)
+#            backup: SSH_KEY=~/.ssh/unlink_oci sh issuer/deploy/push.sh ubuntu@130.210.32.36 backup;  logs: ssh ... 'journalctl -u unlink-issuer -n 50'
+#            NEVER `npm start` with the live ISSUER_PRIVATE_KEY while the VM runs (two writers = conflicting roots). Purchases auto-publish a root ~30-60 s later.
+#            publish now: curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://unlink-issuer.duckdns.org/admin/publish-root   (NOT `npm run publish-root`: the laptop issuer.db is retired)
 # arkiv:     cd issuer && npm run arkiv-roundtrip        (REAL Rabdi + Sepolia: publish, read back, rebuild == signed == on-chain root)
 #            cd issuer && npm run arkiv-expiry           (2-minute entity, gone after its expiry block; ~2.5 min)
 # apps:      cd apps/passenger && ./gradlew :app:assembleDebug   (JAVA_HOME = JDK 21 root; local.properties sdk.dir)
 #            cd apps/passenger && ./gradlew :app:connectedDebugAndroidTest   (phone UNLOCKED + `adb shell svc power stayon usb`; 12 tests)
 #            node apps/passenger/prepare-assets.mjs && node apps/passenger/check-assets.mjs   (rebundle protocol.js + copy fixtures; CI check)
 #            node apps/passenger/record-arkiv.mjs   (re-record real Arkiv/Sepolia responses for RefreshTest)
-#            demo: cd issuer && npm start; adb reverse tcp:3000 tcp:3000; buy in app; POST /admin/publish-root; Refresh
+#            demo: buy in the app (any network; default issuer = hosted); the pass turns Ready within ~1-2 min (auto-publish + app re-check)
 # qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
 # audit:     node scripts/check-audit.mjs   (runs audit/index.html's own logic vs LIVE Sepolia + Arkiv; checks the ethers SRI; exit 1 on any false claim)
 #            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/Unlink/ (Pages workflow deploys audit/ only)
@@ -104,7 +107,7 @@ Load these files on demand only; don't read them all every session:
 #            node apps/scanner/prepare-assets.mjs && node apps/scanner/check-assets.mjs   (snarkjs + vk + fixtures into the app; CI check)
 #            cd apps/scanner && ./gradlew :app:assembleDebug :app:connectedDebugAndroidTest   (7 tests: fixtures via Room, key, purge/queue, LIVE sync; logcat -s UnlinkLatency)
 #            scanner demo: install on phone 2; Settings shows the scanner address -> issuer/scanners.json -> cd issuer && npm run publish-scanners;
-#            issuer npm start + adb reverse tcp:3000 tcp:3000 on BOTH phones; Sync now ("scannerList=listed"); passenger in airplane mode -> Green/Amber/Red
+#            redeploy the issuer (update.sh) so scanners.json is live; Sync now ("scannerList=listed"); passenger in airplane mode -> Green/Amber/Red
 ```
 
 ## Working rules

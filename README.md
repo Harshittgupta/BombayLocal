@@ -4,6 +4,8 @@ Offline, privacy-preserving transit pass verification for Mumbai suburban railwa
 
 **Public audit page:** https://harshittgupta.github.io/Unlink/ checks the live claims (active issuers, latest root on Ethereum = signed root on Arkiv, issuer signature, root expiry, root rate, verification key hash) straight from Sepolia and Arkiv in your browser. Source: [`audit/index.html`](audit/index.html), one static file.
 
+**Hosted issuer:** https://unlink-issuer.duckdns.org (`/health`). Both apps buy passes and upload scan batches here, from any network. It runs on an Oracle Cloud Always Free VM behind HTTPS (Caddy), with no access logs; setup in [`issuer/deploy/README.md`](issuer/deploy/README.md). Showing and scanning a pass never use it.
+
 ## Problem
 
 ## How it works

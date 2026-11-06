@@ -31,8 +31,9 @@ android {
         // Endpoint defaults; all three are editable in Settings (SPEC §8: RPC and Arkiv endpoints are configurable).
         buildConfigField("String", "ARKIV_RPC_DEFAULT", "\"https://rpc.rabdi.db-chain.testnet.arkiv.network\"")
         buildConfigField("String", "SEPOLIA_RPC_DEFAULT", "\"https://ethereum-sepolia-rpc.publicnode.com\"")
-        // The demo issuer runs on the laptop; `adb reverse tcp:3000 tcp:3000` makes it localhost on the phone.
-        buildConfigField("String", "ISSUER_URL_DEFAULT", "\"http://127.0.0.1:3000\"")
+        // The hosted issuer (issuer/deploy/README.md). For local development set http://127.0.0.1:3000 in Settings
+        // and use `adb reverse tcp:3000 tcp:3000` (cleartext is allowed only for localhost).
+        buildConfigField("String", "ISSUER_URL_DEFAULT", "\"https://unlink-issuer.duckdns.org\"")
     }
 
     buildTypes {
