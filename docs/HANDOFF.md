@@ -144,3 +144,9 @@ Docs: README rewritten (≤1,000 words, docs/architecture.png), arkiv/why-arkiv.
 Numbers: web e2e ready in 63 s, proof 1.3 s (laptop), check ~50 ms with 0 requests. Live: 25 passes, roots up to #20, 46 issuer Arkiv writes, 20 postRoot txs.
 Open: signed non-debuggable release APKs; Caddy journal IP lines (user decision); Arkiv access key; old /Unlink/ Pages URL gone.
 Next: module-11b (judge pass + docs/QA.md) — /clear, then /model opus, /effort high; then 11c (video, release, submission).
+
+## module-11b · judge-pass · 2026-11-07 03:20 · commits 31f7b82, 842e366
+Exists: docs/QA.md (15 hardest questions, 2-sentence answers, ZK engineer + railway official). README fixed for a fresh-context judge: sourced Mumbai figures (Free Press Journal, FY 2025–26: ~46 lakh cases, ~₹262 crore), CROPS C/P honest about the 36 h limit and RPC-provider visibility, Android demo steps (sync scanner, wait for "Ready offline"), a self-test for censorship resistance (Issuer URL → https://issuer.invalid), device names on numbers. README prose ~982 words.
+Judge scores: EF CROPS 8/8/8/7/6; Arkiv 8/6/8/9; every qualification PASS except the video (pending).
+Open: demo video ≤ 3:00 (BOUNTIES §4, adapted: the issuer is hosted, so "kill the issuer" = point the app at https://issuer.invalid or `sudo systemctl stop unlink-issuer` on the VM); submission form; optional signed release APKs; user's unsourced pitch figures.
+Next: module-11c (video, GitHub Release check, ETHGlobal submission) — human-led; Claude helps with the script and checks.

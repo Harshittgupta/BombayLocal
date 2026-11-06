@@ -24,6 +24,26 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-07 · module-11b · judge-pass (fresh-context EF CROPS + Arkiv judge, README overclaim fixes, docs/QA.md)
+Commit: 31f7b82 (judge-pass fixes + docs/QA.md)  (pushed: yes)
+Judge (general-purpose subagent, Opus, fresh context; ran the README Arkiv query, check-audit 9/9, curled every live URL):
+- EF CROPS: works end to end 8, depth of C 8, other three/trade-offs 8, UX 7, could ship 6. Qualification: repo/MIT/run instructions PASS, `CROPS` section PASS, no trackers PASS, keys on device PASS (weak), video PENDING (11c), CROPS-only submission CAN'T VERIFY.
+- Arkiv: friction 8, reach 6, why-Arkiv 8, how-you-use 9. Qualification: all PASS (from scratch, SDK writes, user-visible reads, wallets + query, 5 files, license + AI disclosure, not write-only).
+- 5 challengeable claims, all fixed in 31f7b82: unsourced Mumbai figures (now the Free Press Journal FY 2025–26 report, verified against the article in 842e366); CROPS-P omitted RPC-provider visibility; CROPS-C overstated (now the 36 h limit + replacement issuer); "real usage" (now test activity); expiry claim (now: set to expire, shown with a 2-minute entity).
+Reviewer: hostile-reviewer subagent (Sonnet, medium, docs-only) on bf1f2f7..31f7b82
+Findings: no CRITICAL/MAJOR. [MINOR] censorship recipe needs a pass already bought; QA Q5 retention is two epochs, not ~20 min; README borderline on 1,000 words; FPJ figures unverified by the reviewer
+Fixed in: 842e366 (all four; FPJ figures checked against the article: ~₹262 crore, CR 16.16 lakh FY 2025–26 incl. mail/express, WR ~30 lakh Apr 2025–Feb 2026)
+Still open: the user's own pitch figures (9.5M commuters, 1.86M ticketless, 8,000/day, $372k/day) are unsourced and kept out of the README; demo video (11c); docs/JUDGE_PREP.md uncommitted (user's choice)
+
+Rule check (rule-checker subagent, Sonnet):
+- R1 auditable repo ............ PASS  (no secrets tracked; Quickstart intact)
+- R2 commits proper + same day . PASS  (31f7b82, 842e366, 2026-11-07, module-11b, HEAD == origin/main)
+- R3 this review logged ........ PASS  (this entry)
+- R4 two separate apps ......... PASS  (unchanged; docs-only range)
+- R5 real web3, no mocks ....... PASS  (item 8: censorship recipe matches Refresher.kt/IssuerClient usage; live site + issuer 200; check-audit exit 0, 20 RootPosted, vk hash pinned)
+- R6 CROPS / Arkiv only ........ PASS
+Blockers: none
+
 ### 2026-11-07 · module-10b + module-11a · live demo site, BombayLocal rename + logo, README + Arkiv docs
 Commit: 04f887e (web demo), 960d393, 5ea131d, 7b7ebfd (polish, drag-aside, hashed assets), 05fd557, fa1f148 (rename), 6f7a4e5 (logo), ff3f131, fc821f7 (README, Arkiv files, quickstart fix)  (pushed: yes; CI + Demo site green; releases v0.9.0–v0.9.2 built by Actions)
 Reviewer: hostile-reviewer subagent, fresh context, on f418a79..fc821f7; it checked web/src/verifier.ts line by line against OfflineVerifier.kt (no divergence) and re-ran web tests (74/74)
