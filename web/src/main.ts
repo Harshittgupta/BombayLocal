@@ -345,6 +345,7 @@ scanEl.addEventListener("pointerdown", (e) => {
   drag = { x: e.clientX, y: e.clientY };
   scanEl.setPointerCapture(e.pointerId);
   scanEl.classList.add("dragging");
+  document.body.classList.add("is-dragging"); // the download card steps aside while you drag
   document.querySelector(".hint-arrow")?.classList.add("used");
   wakeCamera();
 });
@@ -360,6 +361,7 @@ const endDrag = () => {
   drag = null;
   pending = null;
   scanEl.classList.remove("dragging");
+  document.body.classList.remove("is-dragging");
   scanEl.style.transform = "";
   if (moved) scanEl.classList.add("returning");
   else sleepCamera(); // a click without a drag: nothing to animate back

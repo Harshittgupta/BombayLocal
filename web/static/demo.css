@@ -232,3 +232,5 @@ html { scroll-behavior: smooth; }
   .glyph path { stroke-dashoffset: 0; }
 }
 .hint-arrow.used { display: none; }
+.downloads { transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease; }
+body.is-dragging .downloads { opacity: .12; pointer-events: none; }
