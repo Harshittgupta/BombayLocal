@@ -58,7 +58,7 @@ Lifetimes are set in 2-second blocks, matched to how long the data is useful:
 | ScannerList | 7 days, re-published on change |
 | VerifyKey | 30 days, extended |
 
-Expired passes therefore **leave Arkiv on their own**, and a phone downloads only live passes (32 bytes each).
+Batches are set to **expire after their passes do**, so a phone downloads only live passes (32 bytes each). The rebuild still hashes every position ever issued (SPEC §8). No real batch has reached its expiry yet: the longest passes are still valid. Expiry itself was verified with a 2-minute test entity.
 A recorded run of a 2-minute entity disappearing on schedule is in [expiry-demo.txt](expiry-demo.txt).
 
 ## Does each feature change what users see?

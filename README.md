@@ -12,20 +12,18 @@
 | **Registry** (Ethereum Sepolia, verified source) | [`0xd13c…5A16`](https://sepolia.etherscan.io/address/0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16) |
 | **Hosted issuer** (buying passes only) | https://bombaylocal-issuer.duckdns.org/health |
 
-*Formerly named Unlink.* Protocol identifiers keep that name on purpose, because live data depends on them: the root-signing tag `UNLINK-ROOT-v1`, the Arkiv tags (`app = 'unlink'`, `unlink.signedRoot` …), the Android package IDs `xyz.unlink.*`, the deployed Registry's verified source and the circuit.
+*Formerly Unlink.* Live data depends on the old name, so it stays in the signing tag `UNLINK-ROOT-v1`, the Arkiv tags `unlink.*`, the package IDs `xyz.unlink.*`, the verified Registry source and the circuit.
 
 ## Problem
-Mumbai's suburban railway carries millions of commuters a day, and passes are still checked by hand. Our pitch figures: about **9.5 million** daily commuters, **1.86 million** ticketless, roughly **8,000** caught per day, and around **$372,000** in daily fare loss. Checking is slow in a packed coach, and online checks fail where trains lose signal.
-
-Digital passes usually fix speed by adding a server that sees every check. That turns a ticket into a tracking record, and the check still fails without signal.
+Mumbai's suburban railway carries millions of commuters a day, and passes are still checked by hand. In FY 2025–26, Central and Western Railway in Mumbai detected **over 46 lakh (4.6 million) ticketless or irregular-travel cases** and collected **about ₹262 crore** in fines ([Free Press Journal](https://www.freepressjournal.in/mumbai/mumbai-local-train-cr-wr-collect-whopping-262-crore-in-fines-from-ticketless-travellers-within-a-year), from railway data). Checks are slow in a packed coach, and online checks fail where trains lose signal. Digital passes usually add a server that sees every check, which turns a ticket into a tracking record.
 
 **The one question:** can a ticket checker know a pass is valid, **offline**, without learning who you are?
 
 ## How it works
 ![Architecture](docs/architecture.png)
 
-1. **Buy.** The phone makes a secret, kept by the Android Keystore, and sends only its hash. The payment is **simulated**. The issuer adds `Poseidon(hash, validUntil, class)` to a Merkle tree.
-2. **Publish.** About a minute later the issuer posts one 32-byte root to the Registry on Ethereum. It puts the pass hashes, revocations and the signed root on **Arkiv**, as public records that expire.
+1. **Buy.** The phone keeps a secret in the Android Keystore and sends only its hash (payment **simulated**). The issuer adds `Poseidon(hash, validUntil, class)` to a Merkle tree.
+2. **Publish.** About a minute later the issuer posts one 32-byte root on Ethereum, and the pass hashes, revocations and signed root on **Arkiv**, as expiring public records.
 3. **Refresh.** The phone rebuilds the tree from Arkiv, checks that it equals the root on Ethereum, and finds its own leaf. The issuer is not contacted.
 4. **Prove.** The phone makes a Groth16 proof: "my pass is in this tree, valid today, this class". The QR changes every 10 minutes.
 5. **Check offline.** The scanner verifies the issuer's signature, the root's expiry and the proof, with no network. The same code shown twice is **Amber**, three times **Red**.
@@ -33,14 +31,14 @@ Digital passes usually fix speed by adding a server that sees every check. That 
 | Measured | Value |
 |---|---|
 | Circuit | 5,697 constraints |
-| Proof on a phone / on a laptop (same JS as the web demo) | ~3.5 s (pre-made, never at scan time) / 1.3 s |
-| Check on the scanner | 50.7 ms median, 0 network requests |
+| Proof on a phone / on a laptop (same JS as the web demo) | ~3.5 s on a vivo Y100 (misses SPEC's < 3 s target; made ahead, never at scan time) / 1.3 s |
+| Check on the scanner | 50.7 ms median on a Nothing Phone A142, no network |
 | QR | 427 bytes → 641 Base45 characters → version 16-M |
 | `postRoot` | 57,651 gas, one per batch of purchases |
 | Buy → pass ready (hosted issuer) | ~60 s |
 
 ## Quickstart
-Requirements: Node **22.13.1**, JDK **21** + Android SDK (apps), [Foundry](https://getfoundry.sh) (contract), and circom **2.2.3** only to rebuild the circuit. Every command below was run on a fresh clone.
+Requirements: Node **22.13.1**, JDK **21** + Android SDK, [Foundry](https://getfoundry.sh); circom **2.2.3** only to rebuild the circuit. Every command below passed on a fresh clone (logged in docs/REVIEWS.md).
 
 ```sh
 git clone https://github.com/Harshittgupta/BombayLocal.git && cd BombayLocal
@@ -61,16 +59,19 @@ Running your own issuer: [`issuer/deploy/README.md`](issuer/deploy/README.md). E
   1. Open the live demo and buy a pass.
   2. Wait about a minute for the issuer's root on Ethereum.
   3. Drag the checker's phone onto the code: Green. Drag it away and back: Amber, then Red.
+
+  Both "phones" share one page: it shows the protocol, not the Keystore or two separate devices. The request counter counts the page's fetch/XHR calls.
 - **Android:**
-  1. Install both APKs and buy a pass in BombayLocal Pass.
-  2. Put that phone in airplane mode.
-  3. Show the QR from the lock screen or the notification and scan it with BombayLocal Scan.
+  1. Install both APKs. Open BombayLocal Scan once while online so it syncs (the chip says "Synced").
+  2. Buy a pass in BombayLocal Pass and wait until it says **Ready offline** (about a minute).
+  3. Put the passenger phone in airplane mode. Show the QR from the lock screen or the notification, and scan it.
+- **Test censorship resistance:** in BombayLocal Pass → Settings, set the Issuer URL to `https://issuer.invalid`. Refresh and scanning still work; only Buy fails.
 
 ## CROPS
-- **C (censorship resistance).** Switch the issuer server off and checks still pass. Scanners verify offline, and phones refresh from Arkiv and Ethereum, never from the issuer. Passes keep working until the last root expires (36 h), and every endpoint is editable in Settings.
-- **O (open source).** MIT. Both apps, the circuit, the contract, the issuer and the website build from this repo; CI re-checks the circuit artifacts. The contract source is verified on Etherscan, and the APKs are built by GitHub Actions.
-- **P (privacy).** The issuer sees a hash and the product at purchase, plus your IP held in memory for at most an hour for the purchase limit (never logged or stored). The checker sees validity, class and a 10-minute nullifier. No accounts, analytics or trackers; CI greps for them. Logs carry no IPs.
-- **S (security).** The secret is created on the phone, wrapped by the Keystore and excluded from backups. Groth16 proofs; signatures checked offline. The scanner needs two RPC providers to agree before trusting state. Limits are stated below.
+- **C (censorship resistance).** With the issuer off or hostile, existing passes keep refreshing and verifying for up to 36 h: scanners work offline, and phones refresh from Arkiv and Ethereum, never the issuer. New passes need the issuer or a replacement the authority registers. App endpoints are editable in Settings.
+- **O (open source).** MIT. Apps, circuit, contract, issuer and website all build from this repo; CI re-checks the circuit, Etherscan has the verified contract, and GitHub Actions builds the APKs.
+- **P (privacy).** The issuer sees a hash and the product at purchase; your IP stays in its memory for at most an hour (purchase limit) and is never logged. The default Arkiv and RPC providers see the phone's IP and issuer on refresh (changeable in Settings). The checker sees validity, class and a 10-minute nullifier. No accounts, analytics or trackers.
+- **S (security).** The secret is created on the phone, Keystore-wrapped and never backed up. Proofs and signatures are checked offline, and the scanner trusts chain state only when two RPC providers agree. Limits below.
 
 ## Arkiv
 Every pass hash, revocation, signed root, scanner list and the verification key lives on Arkiv, and the passenger app, the scanner and the audit page all read it back.
@@ -89,15 +90,15 @@ More detail: [schema](arkiv/schema.md) · [why Arkiv](arkiv/why-arkiv.md) · [ho
 
 ## Threat model and limitations
 The full table is in [SPEC.md §8](SPEC.md). Stated up front:
-- **Duplicates are caught per scanner.** A shared screenshot shown to two checkers in the same 10 minutes passes both; uploaded scan batches only *measure* this.
+- **Duplicates are caught per scanner:** a screenshot shown to two checkers within 10 minutes passes both (scan batches only *measure* this).
 - **Demo-grade trusted setup** (one phase-2 contribution) and an **EOA authority** (a multisig in production).
 - **Revocation delay:** a revoked pass works on its old root for up to 36 h, unless the authority raises the floor.
 - **Download size:** phones fetch 32 bytes per live pass, about 32 MB at a million. Production needs delta sync.
 - **Simulated purchase.** Everything else is real.
 - **Lock-screen code:** whoever holds the phone can show it, and an app with notification access can read it (valid for its 10 minutes only).
 - **A fresh pass narrows its root:** at low traffic the buyer is briefly alone on the newest root.
-- **The APKs are debug builds** (debuggable, debug-signed). Someone who already holds your unlocked phone with USB debugging on could inspect the app and copy the pass secret. A production release is a signed, non-debuggable build.
-- **Testnets only.** The issuer runs on an Oracle Always Free VM that can be paused after 7 idle days.
+- **The APKs are debug builds:** someone holding your unlocked phone with USB debugging on could inspect the app and copy the secret. Production ships signed, non-debuggable builds.
+- **Testnets only;** the issuer's free Oracle VM can be paused after 7 idle days.
 
 ## Path to production
 - **Governance and setup:** a multisig authority and a multi-party trusted-setup ceremony.
@@ -106,7 +107,7 @@ The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 - **Real use:** a payment integration and an Arkiv access key, then a pilot with one operator.
 
 ## AI-use disclosure
-Built with **Claude Code** (Anthropic): planning, code, tests, documentation and deployment scripts, module by module. A human reviewed every task. A separate review agent, with fresh context, critiqued each one, and the findings and fixes are logged in [`docs/REVIEWS.md`](docs/REVIEWS.md). The handoffs are in [`docs/HANDOFF.md`](docs/HANDOFF.md).
+Built with **Claude Code** (Anthropic) for planning, code, tests, docs and deployment, module by module. A human reviewed every task, and a fresh-context review agent critiqued each one; findings and fixes are logged in [`docs/REVIEWS.md`](docs/REVIEWS.md).
 
 ## License
 MIT. See [LICENSE](LICENSE).

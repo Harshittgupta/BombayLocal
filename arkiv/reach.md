@@ -24,7 +24,7 @@ Yes, with no install:
 | Android apps | [latest release](https://github.com/Harshittgupta/BombayLocal/releases/latest) | Install BombayLocal Pass and BombayLocal Scan on two phones; buy, go offline, scan |
 | Live audit | https://harshittgupta.github.io/BombayLocal/audit/ | Watch every public claim checked against Ethereum and Arkiv |
 
-Real usage so far, read live from Arkiv on 2026-11-07:
+Test activity so far (mostly our own purchases while building and demoing), read live from Arkiv on 2026-11-07:
 - 25 passes issued;
 - signed roots #3–#20 still live;
 - 46 issuer writes to Arkiv;
