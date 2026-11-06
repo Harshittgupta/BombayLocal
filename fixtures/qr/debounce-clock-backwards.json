@@ -1,0 +1,38 @@
+{
+  "name": "debounce-clock-backwards",
+  "note": "Last read 5 s in the future (clock moved back): a negative gap counts as a new showing.",
+  "qrText": "V50010+HJPW5SCUBH2*03OP6RJLL0TEH30AE.T3+.090UHGGC-P:YN1AUB 4 Y4Z6KYJMG96Y/HKWJD4O9NAQB1PWJY$HF FE31GL3W0MD349.5 G5UQLFN3Z93OHQYE9A+7 LCVB957MXMD+WU+.PCMAM94Q0I28EKH5U-CV3F*IGZ8J.15*1WNJK9PPS04IUHVBM6PFGC45CL59A6T1JLKYYKOK3EGV8F5+J4%YQ6+RI*4I1O28DDFNN534I3PLT6WIC6GXZRM+B10Q0UR8GKM7M7YOD-KI%9V:E.Y7+A2**SX.S2-VEDOHNVYF6ZPVVPVZB7$FVXDD%/FDU07VL4.4WP1AM993WV7SML2LY96 6SPIMGMH%1CJH.ILKKOC9H98BZEAB617:QLRF7VJO5QI9RMPO5+6OWDI:G5 2OSQG%4SKC2MEB5H-/FGY8Z61XCD6 BU.V3GNZ$CN95TRB000000000C00*%27GJ*%81R8O2GN6LCDUR172ETD$MZUG%S6ZU79K8GFVC/7:MDG%E1NDT5E8H5QIT:H2B29I2WWISQLH V5KRN7GNHPQU35%539%51ASG$MDU5%VTT196VTDGJZIM8 PCZ57Y82U7T/08+VO5SI87L9UXMIR0",
+  "nowMs": 1793040300000,
+  "expected": {
+    "result": "AMBER",
+    "reason": "SEEN_BEFORE",
+    "warnings": [
+      "SEEN_BEFORE"
+    ],
+    "nullifierCount": 2
+  },
+  "storeState": {
+    "chainId": 11155111,
+    "registry": "0xd13c3d5B02312AEFa4661aD1Fc8205807F255A16",
+    "vk": "circuits/artifacts/verification_key.json",
+    "lastSyncMs": 1793036700000,
+    "requiredClass": null,
+    "issuers": [
+      {
+        "address": "0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf",
+        "active": true,
+        "floor": 10,
+        "latestRootId": 12
+      }
+    ],
+    "nullifiers": [
+      {
+        "nullifier": "20479410612776550350683247247752811406763621960865740717230107438050813800209",
+        "epochId": 2988400,
+        "count": 1,
+        "firstSeenMs": 1793040245000,
+        "lastReadMs": 1793040305000
+      }
+    ]
+  }
+}

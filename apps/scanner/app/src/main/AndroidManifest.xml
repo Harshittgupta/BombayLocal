@@ -1,22 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  No INTERNET permission yet: verification is offline (SPEC §5, invariant 3). Sync arrives in M8b as a separate
-  worker. No tracker or crash-reporting SDKs (invariant 4). No backups of the nullifier log (invariant 1).
+  Verification is offline (SPEC §5, invariant 3): OfflineVerifier has no networking. INTERNET is used only by the
+  separate SyncWorker (Registry, Arkiv, scan-batch upload). No tracker or crash-reporting SDKs (invariant 4).
+  No backups of the nullifier log or the scanner key (invariant 1).
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="true" />
+
     <application
+        android:name=".ScannerApp"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:label="Unlink Scanner"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:keepScreenOn="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Scanner settings" />
     </application>
 </manifest>

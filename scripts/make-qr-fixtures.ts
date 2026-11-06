@@ -39,7 +39,7 @@ const ISSUED_AT = sec(NOW) - 3 * 3600;
 type Store = {
   chainId: number;
   registry: string;
-  vk: string;
+  vk: string | null;
   lastSyncMs: number;
   requiredClass: number | null;
   issuers: { address: string; active: boolean; floor: number; latestRootId: number }[];
@@ -198,6 +198,8 @@ async function main(): Promise<void> {
   add("stale-48h-amber", "Exactly 48 h: not > STALE_MAX, still Amber.", valid, amber("SCANNER_UNSYNCED"), NOW, (s) => { s.lastSyncMs = NOW - 48 * H; });
   add("stale-49h-red", "Last sync 49 h ago: Red SCANNER_STALE.", valid, R("SCANNER_STALE"), NOW, (s) => { s.lastSyncMs = NOW - 49 * H; });
   add("never-synced", "lastSync 0 (never synced): Red SCANNER_STALE.", valid, R("SCANNER_STALE"), NOW, (s) => { s.lastSyncMs = 0; });
+  add("lastsync-in-future-121", "lastSync 121 s in the future (clock moved back after the sync): age unknown, Red SCANNER_STALE.", valid, R("SCANNER_STALE"), NOW, (s) => { s.lastSyncMs = NOW + 121_000; });
+  add("lastsync-in-future-120", "lastSync 120 s in the future: within SKEW, accepted.", valid, GREEN, NOW, (s) => { s.lastSyncMs = NOW + 120_000; });
 
   // ---- Step 4: issuer
   add("suspended-issuer", "The issuer is suspended in the last sync.", valid, R("ISSUER_INACTIVE"), NOW, (s) => { s.issuers[0]!.active = false; });
@@ -247,6 +249,8 @@ async function main(): Promise<void> {
   add("debounce-same-showing-amber", "Count 2, re-read 0.5 s later: still the same Amber showing, not counted.", valid, amber("SEEN_BEFORE", 2), NOW, (st) => { st.nullifiers = [nul(p0, 2, NOW - 500)]; });
   add("debounce-gap-1000ms", "A gap of exactly 1 s counts as a new showing.", valid, amber("SEEN_BEFORE", 2), NOW, (st) => { st.nullifiers = [nul(p0, 1, NOW - 1000)]; });
   add("debounce-gap-1500ms", "A gap of 1.5 s counts as a new showing.", valid, amber("SEEN_BEFORE", 2), NOW, (st) => { st.nullifiers = [nul(p0, 1, NOW - 1500)]; });
+  add("debounce-clock-backwards", "Last read 5 s in the future (clock moved back): a negative gap counts as a new showing.", valid, amber("SEEN_BEFORE", 2), NOW, (st) => { st.nullifiers = [nul(p0, 1, NOW + 5000)]; });
+  add("no-vk", "The store holds no verification key: Red VERIFIER_ERROR (fail closed), nothing stored.", valid, R("VERIFIER_ERROR"), NOW, (st) => { st.vk = null; });
   add("purge-old-epochs", "An entry from epoch E-2 is purged (epochId < e - 1); the scan itself is stored.", valid, { ...GREEN, absent: ["777"] }, NOW, (st) => {
     st.nullifiers = [
       { nullifier: "777", epochId: E - 2, count: 1, firstSeenMs: NOW - 1_200_000, lastReadMs: NOW - 1_200_000 },

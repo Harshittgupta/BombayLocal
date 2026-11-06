@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -31,6 +32,7 @@ class WebViewGroth16Engine private constructor() : Groth16Engine {
     private val pending = ConcurrentHashMap<String, CompletableFuture<Boolean>>()
     private val ready = CompletableFuture<Unit>()
     private val main = Handler(Looper.getMainLooper())
+    @Volatile private var dead = false
 
     private inner class Bridge {
         @JavascriptInterface
@@ -51,6 +53,7 @@ class WebViewGroth16Engine private constructor() : Groth16Engine {
 
     override fun verify(vkJson: String, proof: Groth16Proof, publicSignals: List<BigInteger>): Boolean {
         check(Looper.myLooper() != Looper.getMainLooper()) { "verify must not run on the main thread" }
+        check(!dead) { "renderer gone" }
         ready.get(TIMEOUT_MS, TimeUnit.MILLISECONDS)
         val id = UUID.randomUUID().toString()
         val result = CompletableFuture<Boolean>()
@@ -71,17 +74,24 @@ class WebViewGroth16Engine private constructor() : Groth16Engine {
 
         @Volatile private var instance: WebViewGroth16Engine? = null
 
-        /** The process-wide engine. Call off the main thread; blocks until snarkjs is loaded. */
-        @Synchronized
-        fun shared(context: Context): WebViewGroth16Engine {
+        /** The process-wide engine (rebuilt after a renderer crash). Call off the main thread; blocks until snarkjs is loaded. */
+        fun shared(context: Context): WebViewGroth16Engine = synchronized(this) {
             instance?.let { return it }
             val engine = WebViewGroth16Engine()
             val appContext = context.applicationContext
             Handler(Looper.getMainLooper()).post { engine.attach(appContext) }
             engine.ready.get(TIMEOUT_MS, TimeUnit.MILLISECONDS)
             instance = engine
-            return engine
+            engine
         }
+    }
+
+    /**
+     * Calls [shared] per verify, so a renderer crash costs one VERIFIER_ERROR and the next scan uses a fresh WebView.
+     */
+    class Rebuilding(private val context: Context) : Groth16Engine {
+        override fun verify(vkJson: String, proof: Groth16Proof, publicSignals: List<BigInteger>): Boolean =
+            shared(context).verify(vkJson, proof, publicSignals)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -98,6 +108,18 @@ class WebViewGroth16Engine private constructor() : Groth16Engine {
             // Only the app's own assets are served; any other URL gets an empty 404.
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse =
                 assetLoader.shouldInterceptRequest(request.url) ?: WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), null)
+
+            // The renderer died (OOM kill or crash): fail every pending verify (→ VERIFIER_ERROR, fail closed),
+            // drop this engine and let the next scan build a fresh one, instead of crashing the app.
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                dead = true
+                ready.completeExceptionally(IllegalStateException("renderer gone"))
+                pending.values.forEach { it.completeExceptionally(IllegalStateException("renderer gone")) }
+                pending.clear()
+                synchronized(Companion) { if (instance === this@WebViewGroth16Engine) instance = null }
+                view.destroy()
+                return true
+            }
         }
         wv.addJavascriptInterface(Bridge(), "ScannerBridge")
         webView = wv

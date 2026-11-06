@@ -13,6 +13,7 @@
     "publish-root": "tsx --env-file-if-exists=../.env src/cli-publish.ts",
     "arkiv-roundtrip": "tsx --env-file-if-exists=../.env scripts/arkiv-roundtrip.ts",
     "arkiv-expiry": "tsx --env-file-if-exists=../.env scripts/arkiv-expiry-demo.ts",
+    "publish-scanners": "tsx --env-file-if-exists=../.env scripts/publish-scanners.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "sign-fixtures": "tsx scripts/make-sign-fixtures.ts"

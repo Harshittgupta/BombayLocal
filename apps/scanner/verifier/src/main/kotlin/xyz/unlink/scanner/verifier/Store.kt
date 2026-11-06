@@ -2,8 +2,11 @@ package xyz.unlink.scanner.verifier
 
 import java.math.BigInteger
 
-/** What the last sync recorded about one issuer (Registry.issuerState). */
-data class IssuerRecord(val active: Boolean, val floor: Long)
+/**
+ * What the last sync recorded about one issuer (Registry.issuerState). `latestRootId` is kept for status and audit
+ * only: verify accepts a higher rootId it has never seen (SPEC §5 step 5).
+ */
+data class IssuerRecord(val active: Boolean, val floor: Long, val latestRootId: Long = 0)
 
 /** One nullifier log entry (SPEC §5 step 9). Nothing else about a scan is ever stored. */
 data class NullifierRecord(

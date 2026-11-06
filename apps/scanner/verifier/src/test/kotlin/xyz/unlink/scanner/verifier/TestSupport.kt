@@ -55,7 +55,7 @@ class QrFixture(val name: String, private val j: JSONObject) {
         val issuers = s.getJSONArray("issuers").let { a ->
             (0 until a.length()).associate { i ->
                 val o = a.getJSONObject(i)
-                o.getString("address").lowercase() to IssuerRecord(o.getBoolean("active"), o.getLong("floor"))
+                o.getString("address").lowercase() to IssuerRecord(o.getBoolean("active"), o.getLong("floor"), o.getLong("latestRootId"))
             }
         }
         val st = MemoryStore(
@@ -63,7 +63,7 @@ class QrFixture(val name: String, private val j: JSONObject) {
             registry = Hex.bytes(s.getString("registry"), 20),
             lastSync = s.getLong("lastSyncMs"),
             issuers = issuers,
-            vk = Repo.file(s.getString("vk")).readText(),
+            vk = if (s.isNull("vk")) null else Repo.file(s.getString("vk")).readText(),
             required = if (s.isNull("requiredClass")) null else s.getInt("requiredClass"),
         )
         val ns = s.getJSONArray("nullifiers")

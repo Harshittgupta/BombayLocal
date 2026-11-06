@@ -33,6 +33,14 @@ class VectorsTest {
     }
 
     @Test
+    fun scanBatchDigestMatches() {
+        val sb = sign.getJSONObject("scanBatch")
+        val ns = sb.getJSONArray("nullifiersSorted").let { a -> (0 until a.length()).map { BigInteger(a.getString(it)) } }
+        val d = ScanBatch.digest(Hex.bytes(sb.getString("scannerPubKey"), 20), sb.getLong("epochId"), ScanBatch.sorted(ns.reversed()))
+        assertEquals(sb.getString("digest"), Hex.of(d))
+    }
+
+    @Test
     fun scanBatchSignerRecovers() {
         val sb = sign.getJSONObject("scanBatch")
         assertEquals(sb.getString("signer").lowercase(), SignedRoot.recoverSigner(Hex.bytes(sb.getString("digest"), 32), Hex.bytes(sb.getString("eip191Signature"), 65)))

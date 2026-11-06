@@ -64,8 +64,10 @@ class OfflineVerifier(private val engine: Groth16Engine) {
         if (!epochOk) return red(Reason.WRONG_EPOCH)
 
         // 3. Scanner freshness.
+        // A lastSync more than SKEW in the future means the clock moved back since the sync: the age is unknown, so
+        // the TC must sync again.
         val sinceSync = nowMs - store.lastSyncMs()
-        if (sinceSync > Params.STALE_MAX_MS) return red(Reason.SCANNER_STALE)
+        if (sinceSync > Params.STALE_MAX_MS || sinceSync < -Params.SKEW * 1000) return red(Reason.SCANNER_STALE)
 
         // 4. Issuer.
         val issuer = store.issuer(q.issuerHex)
@@ -97,8 +99,10 @@ class OfflineVerifier(private val engine: Groth16Engine) {
         if (required != null && q.zoneClass < required) return red(Reason.WRONG_CLASS)
 
         // 8. Nullifier. A read with no gap >= DEBOUNCE_GAP since the last one is the same showing: not counted.
+        // A negative gap (the clock moved back) counts as a new showing, so a clock change can never hide a repeat.
         val prev = store.nullifier(q.nullifier)
-        val sameShowing = prev != null && nowMs - prev.lastReadMs < Params.DEBOUNCE_GAP_MS
+        val gap = if (prev == null) -1 else nowMs - prev.lastReadMs
+        val sameShowing = prev != null && gap >= 0 && gap < Params.DEBOUNCE_GAP_MS
         val count = if (sameShowing) prev.count else (prev?.count ?: 0) + 1
 
         // 9. Store, then purge entries older than the previous epoch.
