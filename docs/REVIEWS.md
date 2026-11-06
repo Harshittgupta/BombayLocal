@@ -24,6 +24,40 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-6 · arkiv (Arkiv data layer: issuer writer + reader, real Rabdi round trip)
+Commit: 81df17b (6a docs notes + friction), 1060f18 (build)  (pushed: yes)
+Reviewer: hostile-reviewer subagent (Opus), fresh context, on 9f6c748..1060f18
+Live evidence:
+- Rabdi + Sepolia round trip (`npm run arkiv-roundtrip`) passed on rootIds 3, 5 and 6. The tree rebuilt from Arkiv data alone matches the signed root, the on-chain `issuerState.latestRoot` and the issuer's own tree. The signature recovers the issuer, and the refunded pass is 0.
+- VerifyKey was published by the authority wallet (`0x22ed…c9cd`); its bytes match `verification_key.json`, and the sha256 matches the manifest. The second publish exercised `extendEntity` live.
+- Expiry demo: an entity with a 2-minute life was found by query, and after its expiry block both the query and `arkiv_getEntity` returned nothing (`arkiv/expiry-demo.txt`).
+- Bug found by a live run and fixed before review (in 1060f18): `ExpirationTime.fromSeconds` throws on an odd number of seconds. It fired after `postRoot` and left root 4 on-chain with no SignedRoot. Lifetimes now round up to whole blocks, and the publisher re-publishes a missing latest SignedRoot; root 4 was healed live. Logged as friction #12.
+Findings:
+- [MAJOR] `revokeRange`, `zeroExpiredBatches` and `batchNewLeaves` were not atomic. A crash midway could zero a leaf with no Revocation (phones' rebuild mismatches), or leave a used `seq` that blocks every later revocation. **Fixed**: `IssuerDb.tx()` (BEGIN IMMEDIATE / COMMIT / ROLLBACK, nested calls join the outer transaction) wraps appendLeaf, revokeRange, batchNewLeaves, each zeroing, and recordRoot. A rollback test was added.
+- [MAJOR] A crash after the `postRoot` tx is mined but before `recordRoot` left the on-chain latest root without a SignedRoot, and the heal step could not see it; the code comment overclaimed that it could. **Fixed**: the publisher records `pendingRoot {root, leafCount, revSeq, txHash}` before and at broadcast. On the next run, if the chain's latest root equals the pending root, it signs that root with the on-chain rootId/postedAt and records it; otherwise it clears the pending root. **Tested live** by deleting root 6's DB row with pending set: it re-recorded root 6 with an identical signature and issuedAt. The following post reverted with `TooSoon()`, the 60 s on-chain interval, as designed. The next run (root 7, [tx 0x8748…3db3](https://sepolia.etherscan.io/tx/0x874852b41967d08e1c228b83498bc66889b42a1b86bf04ce8763165064bc3db3)) cleared the stale pending root and published normally. CI: green on 81df17b, 1060f18 and b6bcc1c.
+- [MINOR] doc overclaims in schema.md ("only how many passes were sold": `lastValidDay` reveals a 1-pass batch's product; "never a second entity": a retried create can leave a byte-identical duplicate). **Fixed** (wording).
+Fixed in: b6bcc1c
+Not fixed (deliberate, MINOR):
+- A 1-leaf tree whose leaf is zeroed has root 0, so the heartbeat refuses to post it. Demo trees hold many leaves; fixing this needs a SPEC decision.
+- A reset `issuer.db` on the same key restarts `batchNo`/`seq` and collides with live entities. The writer refuses (idempotency check) rather than corrupting anything. Operational: never reset the DB of a live issuer key.
+- Offset paging can miss or repeat rows while entities change. A miss shows up as a root mismatch, and the phone keeps its previous root and retries (SPEC §3.1 step 5). Switch to keyset paging in the M7/M8 Kotlin reader.
+- §9 "the writer extends ScannerList/VerifyKey before expiry": the extend path exists and ran live, but nothing schedules it yet. Wire it into the heartbeat in M8 (ScannerList) or M10.
+- `lastValidDay` is an extra LeafBatch attribute beyond SPEC §3.1's list, used for expiry and zeroing. Documented in arkiv/schema.md.
+- `publishRoot`, the heal and the heartbeat have no automated tests (they need Sepolia and Arkiv). They are covered by the live runs above.
+Still open:
+- ScannerList writer/reader not exercised live: there are no scanner keys until M8.
+- Arkiv max ops per batch and per-tx limits are UNKNOWN (docs/notes/arkiv.md). Batches are capped at 2,000 leaves (64 KB).
+
+Rule check (rule-checker subagent, Sonnet, on 9f6c748..b6bcc1c):
+- R1 auditable repo ............ PASS  (no keys in git ls-files; .env ignored; .env.example has ARKIV_*; package versions exact)
+- R2 commits proper + same day . PASS  (81df17b, 1060f18, b6bcc1c, all `module-6:`, 2026-11-06, pushed)
+- R3 this review logged ........ FAIL at check time (the checker ran before this entry was written), now PASS: entry written, hashes resolve (`git cat-file -t`)
+- R4 two separate apps ......... N/A yet (scanner is M8)
+- R5 real web3, no mocks ....... PASS  (items 1, 2, 4 issuer side, 7, 8 checked. Live arkiv_query returned the issuer's SignedRoots with creator = owner = issuer. The only mock is purchase.ts. App/page read-back is M7–M9)
+- R6 CROPS / Arkiv only ........ PASS  (serves Build on Arkiv; no Hedera/World ID)
+- Invariant 1 (no leaf/leafIndex in logs) PASS
+Blockers: none (the authority wallet was funded on Rabdi mid-module; VerifyKey is now published)
+
 ### 2026-11-06 · module-5 · issuer (issuer/ service, real postRoot on Sepolia)
 Commit: 968eab2, 676b98f (build) + 296f1db (review fixes)  (pushed: yes; CI green on all 7 jobs)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on bf06c90..676b98f
