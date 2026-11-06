@@ -38,7 +38,7 @@ Mumbai's suburban railway carries millions of commuters a day, and passes are st
 | Buy → pass ready (hosted issuer) | ~60 s |
 
 ## Quickstart
-Requirements: Node **22.13.1**, JDK **21** + Android SDK, [Foundry](https://getfoundry.sh); circom **2.2.3** only to rebuild the circuit. Every command below passed on a fresh clone (logged in docs/REVIEWS.md).
+Requirements: Node **22.13.1**, JDK **21** + Android SDK, [Foundry](https://getfoundry.sh); circom **2.2.3** only to rebuild the circuit. All commands below passed on a fresh clone.
 
 ```sh
 git clone https://github.com/Harshittgupta/BombayLocal.git && cd BombayLocal
@@ -60,7 +60,7 @@ Running your own issuer: [`issuer/deploy/README.md`](issuer/deploy/README.md). E
   2. Wait about a minute for the issuer's root on Ethereum.
   3. Drag the checker's phone onto the code: Green. Drag it away and back: Amber, then Red.
 
-  Both "phones" share one page: it shows the protocol, not the Keystore or two separate devices. The request counter counts the page's fetch/XHR calls.
+  Both "phones" share one page, so it shows the protocol, not the Keystore; its counter counts the page's fetch/XHR calls.
 - **Android:**
   1. Install both APKs. Open BombayLocal Scan once while online so it syncs (the chip says "Synced").
   2. Buy a pass in BombayLocal Pass and wait until it says **Ready offline** (about a minute).
@@ -70,8 +70,8 @@ Running your own issuer: [`issuer/deploy/README.md`](issuer/deploy/README.md). E
 ## CROPS
 - **C (censorship resistance).** With the issuer off or hostile, existing passes keep refreshing and verifying for up to 36 h: scanners work offline, and phones refresh from Arkiv and Ethereum, never the issuer. New passes need the issuer or a replacement the authority registers. App endpoints are editable in Settings.
 - **O (open source).** MIT. Apps, circuit, contract, issuer and website all build from this repo; CI re-checks the circuit, Etherscan has the verified contract, and GitHub Actions builds the APKs.
-- **P (privacy).** The issuer sees a hash and the product at purchase; your IP stays in its memory for at most an hour (purchase limit) and is never logged. The default Arkiv and RPC providers see the phone's IP and issuer on refresh (changeable in Settings). The checker sees validity, class and a 10-minute nullifier. No accounts, analytics or trackers.
-- **S (security).** The secret is created on the phone, Keystore-wrapped and never backed up. Proofs and signatures are checked offline, and the scanner trusts chain state only when two RPC providers agree. Limits below.
+- **P (privacy).** The issuer sees a hash and the product at purchase; your IP stays in its memory for at most an hour (purchase limit) and is never logged. The default Arkiv and RPC providers see the phone's IP and issuer on refresh (changeable in Settings). The checker sees validity, class and a 10-minute nullifier. No accounts, no personal data collected, no analytics or trackers.
+- **S (security).** Keys stay on the device: the secret is created on the phone, Keystore-wrapped, never sent or backed up. Proofs and signatures are checked offline; the scanner trusts chain state only when two RPC providers agree.
 
 ## Arkiv
 Every pass hash, revocation, signed root, scanner list and the verification key lives on Arkiv, and the passenger app, the scanner and the audit page all read it back.
