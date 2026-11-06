@@ -100,7 +100,10 @@ Load these files on demand only; don't read them all every session:
 #            demo: buy in the app (any network; default issuer = hosted); the pass turns Ready within ~1-2 min (auto-publish + app re-check)
 # qr check:  cd circuits && npm run verify-qr -- <file with the 641-char QR text>   (Groth16 + signer + Registry root)
 # audit:     node scripts/check-audit.mjs   (runs audit/index.html's own logic vs LIVE Sepolia + Arkiv; checks the ethers SRI; exit 1 on any false claim)
-#            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/Unlink/ (Pages workflow deploys audit/ only)
+#            open audit/index.html locally (file:// works), or https://harshittgupta.github.io/Unlink/audit/
+# web:       cd web && npm ci && npm test && npm run build   (browser scanner vs all fixtures/qr; site in web/_site; Pages workflow deploys it: demo at /, audit at /audit/)
+#            cd web && npm run e2e   (LIVE: buys 1 real day pass on the hosted issuer, waits for auto-publish, proves, decodes the QR pixels, scans Green/Amber/Red with 0 requests)
+#            release: git tag vX.Y.Z && git push origin vX.Y.Z   (release.yml builds both APKs; the site's download QRs use releases/latest)
 # fixtures:  cd issuer && npm run sign-fixtures   (fixtures/sign-vectors.json + qr-vectors.json, test key pk=1)
 #            cd scripts && npm ci && npm run qr-fixtures   (fixtures/qr/*.json: 69 SPEC §5 cases, fresh real proofs; needs protocol npm ci)
 # scanner:   cd apps/scanner && ./gradlew :verifier:test   (JVM; all fixtures/qr + vectors + NoNetworkTest; needs circuits npm ci for snarkjs)

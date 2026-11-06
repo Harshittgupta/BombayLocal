@@ -1,0 +1,40 @@
+name: Release APKs
+
+# On a version tag (v*), builds both Android apps from that commit and attaches them to a GitHub Release, so the demo
+# site's download QRs (releases/latest/download/unlink-pass.apk, unlink-scan.apk) always point at CI-built APKs.
+# Debug-signed: installing over a locally built copy needs an uninstall first (different debug keys).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Build Unlink Pass (passenger)
+        working-directory: apps/passenger
+        run: bash ./gradlew --no-daemon :app:assembleDebug
+      - name: Build Unlink Scan (ticket checker)
+        working-directory: apps/scanner
+        run: bash ./gradlew --no-daemon :app:assembleDebug
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || 'manual' }}
+        run: |
+          cp apps/passenger/app/build/outputs/apk/debug/app-debug.apk unlink-pass.apk
+          cp apps/scanner/app/build/outputs/apk/debug/app-debug.apk unlink-scan.apk
+          sha256sum unlink-pass.apk unlink-scan.apk > SHA256SUMS.txt
+          if [ "$TAG" = manual ]; then echo "Built (no tag, nothing published)."; cat SHA256SUMS.txt; exit 0; fi
+          gh release create "$TAG" unlink-pass.apk unlink-scan.apk SHA256SUMS.txt \
+            --title "Unlink $TAG" \
+            --notes "Debug APKs built by GitHub Actions from commit ${GITHUB_SHA}. Unlink Pass (passenger) and Unlink Scan (ticket checker), Android 9+. The purchase uses a simulated payment; everything else is real (Ethereum Sepolia, Arkiv, on-device Groth16). Install over a locally built copy only after uninstalling it. SHA256SUMS.txt lists the file hashes."

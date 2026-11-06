@@ -56,6 +56,8 @@ export type Env = {
   host: string;
   /** Address of a reverse proxy (Caddy on the hosted VM) whose X-Forwarded-For Fastify may trust for req.ip. */
   trustProxy: string | false;
+  /** Browser origins allowed to call POST /purchase and GET /health (the live demo page). */
+  corsOrigins: string[];
 };
 
 /** Reads runtime secrets from the environment. Uses the publicnode RPC by default: the Alchemy endpoint
@@ -77,5 +79,6 @@ export function loadEnv(): Env {
     // Hosted VM: listen on 127.0.0.1 only (Caddy terminates HTTPS in front) and trust only that proxy.
     host: process.env.ISSUER_HOST || "0.0.0.0",
     trustProxy: process.env.ISSUER_TRUST_PROXY || false,
+    corsOrigins: (process.env.ISSUER_CORS_ORIGINS ?? "https://harshittgupta.github.io").split(",").map((s) => s.trim()).filter(Boolean),
   };
 }

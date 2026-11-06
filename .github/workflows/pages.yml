@@ -1,11 +1,19 @@
-name: Audit page
+name: Demo site
 
-# Publishes ONLY audit/ (one static HTML file, no build step) to GitHub Pages.
-# One-time setup: repo Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Publishes the live demo (web/: two-phone simulator) at the site root and the audit page at /audit/ to GitHub Pages.
+# The site is static: everything the browser runs is built here from this commit (protocol/, circuit artifacts that
+# must match circuits/artifacts/manifest.json, audit/index.html). One-time setup: Settings → Pages → Source: "GitHub Actions".
 on:
   push:
     branches: [main]
-    paths: ["audit/**", ".github/workflows/pages.yml"]
+    paths:
+      - "web/**"
+      - "audit/**"
+      - "protocol/**"
+      - "circuits/artifacts/**"
+      - "apps/passenger/app/src/main/assets/www/**"
+      - "deployments.json"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
@@ -25,9 +33,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+      - name: Install (pinned lockfiles)
+        run: |
+          npm ci --prefix protocol --ignore-scripts
+          npm ci --prefix web --ignore-scripts
+      - name: Browser scanner conformance (fixtures/qr, same suite as the Kotlin scanner)
+        run: npm test --prefix web
+      - name: Build the site
+        run: npm run build --prefix web
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: audit
+          path: web/_site
       - id: deployment
         uses: actions/deploy-pages@v4

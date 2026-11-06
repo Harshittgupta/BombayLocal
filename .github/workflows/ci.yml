@@ -8,15 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Grep for analytics / tracker SDKs in apps/ and audit/
+      - name: Grep for analytics / tracker SDKs in apps/, audit/ and web/
         run: |
           if [ ! -d apps ]; then
             echo "apps/ not found yet — skipping (will fail once apps exist)"
             exit 0
           fi
           if grep -rniEI "analytics|firebase|crashlytics|mixpanel|amplitude|sentry|mlkit|google-services|play-services|googletagmanager|gtag\(" \
-            --exclude-dir=build --exclude-dir=.gradle apps/ audit/; then
-            echo "::error::Found tracker references in apps/ or audit/"
+            --exclude-dir=build --exclude-dir=.gradle --exclude-dir=node_modules --exclude-dir=_site apps/ audit/ web/; then
+            echo "::error::Found tracker references in apps/, audit/ or web/"
             exit 1
           fi
           echo "Clean: no trackers found."

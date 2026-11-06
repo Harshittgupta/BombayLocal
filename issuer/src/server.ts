@@ -9,6 +9,7 @@ import { makeArkiv, type ArkivWriter } from "./arkiv/index.ts";
 import { publishRoot } from "./publisher.ts";
 import { AUTO_PUBLISH_RETRIES, autoPublishDelay, hasUnpublishedLeaves } from "./autopublish.ts";
 import { PurchaseLimiter } from "./ratelimit.ts";
+import { corsHook } from "./cors.ts";
 import { makeLogger, type Logger } from "./logger.ts";
 import { ROOT_HEARTBEAT, day } from "@unlink/protocol";
 
@@ -86,6 +87,9 @@ export async function buildServer(opts: {
   const requireAdmin = (req: { headers: Record<string, unknown> }): void => {
     if (req.headers["x-admin-token"] !== env.adminToken) throw new Error("unauthorized");
   };
+
+  // CORS for the live demo page only (src/cors.ts): POST /purchase and GET /health, nothing else.
+  app.addHook("onRequest", corsHook(env.corsOrigins));
 
   app.get("/health", async () => ({ ok: true }));
 

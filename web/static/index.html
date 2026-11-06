@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unlink — private, offline train passes</title>
+  <meta name="description" content="Try Unlink: buy a pass, see its zero-knowledge QR, and scan it with an offline ticket-checker phone. Real Ethereum Sepolia + Arkiv data, real proofs, in your browser.">
+  <meta name="color-scheme" content="dark">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>Unlink</div>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="audit/">Live audit</a>
+      <a href="https://github.com/Harshittgupta/Unlink">Source</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h1>Show a valid train pass. Reveal nothing else.</h1>
+      <p>A passenger's phone proves "I hold a valid pass" with a zero-knowledge proof. The ticket checker's phone verifies it <strong>offline</strong> in about 50&nbsp;ms and learns one thing: <em>this pass is valid right now</em>. Try both phones below — everything is real.</p>
+    </section>
+
+    <section class="stage" id="stage" aria-label="Two phones: Unlink Pass and Unlink Scan">
+      <!-- Passenger phone -->
+      <div class="phone passenger" id="passenger">
+        <div class="phone-label">Passenger · <b>Unlink Pass</b></div>
+        <div class="screen" id="pScreen">
+          <div class="view" id="vBuy">
+            <h2>Buy a pass</h2>
+            <p class="muted small">Your pass lives on this phone and works without signal.</p>
+            <div class="products" role="radiogroup" aria-label="Pass type">
+              <button class="product selected" role="radio" aria-checked="true" data-product="day-pass"><span class="dot"></span><span><b>Day pass</b><small>1 day · 2nd class</small></span></button>
+              <button class="product" role="radio" aria-checked="false" data-product="month-pass"><span class="dot"></span><span><b>Month pass</b><small>30 days · 2nd class</small></span></button>
+              <button class="product" role="radio" aria-checked="false" data-product="month-first"><span class="dot"></span><span><b>Month pass, 1st class</b><small>30 days · 1st class</small></span><i class="band first" aria-hidden="true"></i></button>
+            </div>
+            <div class="buybar">
+              <p class="error" id="buyError" hidden></p>
+              <button class="primary" id="buyBtn">Buy day pass</button>
+              <p class="muted small">Simulated payment — no money is charged</p>
+            </div>
+          </div>
+
+          <div class="view" id="vWait" hidden>
+            <h2>Getting your pass ready</h2>
+            <ol class="steps" id="steps"></ol>
+            <p class="muted small" id="waitNote">Purchases are batched into the next public root. This takes about a minute.</p>
+            <p class="error" id="waitError" hidden></p>
+            <button class="ghost" id="retryBtn" hidden>Try again</button>
+          </div>
+
+          <div class="view" id="vPass" hidden>
+            <div class="ticket">
+              <i class="band" id="ticketBand" aria-hidden="true"></i>
+              <div class="t-name" id="tName">Day pass</div>
+              <div class="t-valid">Valid until <b id="tValid">—</b></div>
+              <div class="t-class muted" id="tClass">2nd class</div>
+            </div>
+            <div class="qrcard" id="qrCard">
+              <canvas id="qrCanvas" aria-label="Your pass code. Drag the scanner phone onto it." role="img"></canvas>
+              <div class="qr-busy" id="qrBusy" hidden><span class="spin"></span>Making a new code…</div>
+            </div>
+            <div class="countdown"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" class="track"/><circle cx="10" cy="10" r="8" class="ring" id="ring"/></svg><span id="cdText">New code in 10:00</span></div>
+            <button class="link" id="againBtn">Buy another pass</button>
+          </div>
+        </div>
+        <p class="note">The pass secret exists only in this tab's memory. The Android app keeps it in the phone's Keystore.</p>
+      </div>
+
+      <div class="hint-arrow" aria-hidden="true">drag ⟶</div>
+
+      <!-- Scanner phone -->
+      <div class="phone scanner" id="scanner">
+        <div class="phone-label">Ticket checker · <b>Unlink Scan</b></div>
+        <div class="screen" id="sScreen">
+          <canvas id="cam" aria-hidden="true"></canvas>
+          <div class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="chip" id="syncChip">Syncing…</div>
+          <p class="cam-hint" id="camHint">Drag this phone onto the pass code</p>
+          <button class="primary scanbtn" id="scanBtn">Scan the pass</button>
+          <div class="verdict" id="verdict" hidden role="status" aria-live="polite">
+            <svg class="glyph" viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="48" r="44"/><path id="glyphPath"/></svg>
+            <div class="v-title" id="vTitle"></div>
+            <div class="v-detail" id="vDetail"></div>
+            <div class="v-meta" id="vMeta"></div>
+          </div>
+        </div>
+        <p class="note">Synced once from Ethereum and Arkiv. Every check then runs offline in this browser.</p>
+      </div>
+    </section>
+
+    <section class="panels">
+      <div class="panel">
+        <h3>What the scanner learned</h3>
+        <p id="learned" class="muted">Nothing yet. Scan a pass.</p>
+        <dl class="facts">
+          <div><dt>Network requests during the check</dt><dd id="fReq">—</dd></div>
+          <div><dt>Check time</dt><dd id="fMs">—</dd></div>
+          <div><dt>Name, phone number, pass ID</dt><dd>never sent</dd></div>
+        </dl>
+      </div>
+      <div class="panel">
+        <h3>Behind the scenes</h3>
+        <ul class="log" id="log"><li class="muted">Real Ethereum Sepolia and Arkiv data. The only simulated part is the payment.</li></ul>
+      </div>
+    </section>
+
+    <section class="how" id="how">
+      <h2>How it works</h2>
+      <ol class="how-steps">
+        <li><b>Buy.</b> Your phone makes a secret and sends only its one-way hash. The issuer adds it to the list of valid passes.</li>
+        <li><b>Publish.</b> The issuer posts one 32-byte fingerprint of the whole list (a Merkle root) on Ethereum, and the list itself on Arkiv.</li>
+        <li><b>Prove.</b> Your phone rebuilds the list from Arkiv, checks it against Ethereum, and makes a zero-knowledge proof: "my pass is in this list and valid today". The code changes every 10 minutes.</li>
+        <li><b>Check offline.</b> The checker's phone verifies the proof and the issuer's signature with no internet. Showing the same code twice turns Amber, then Red.</li>
+      </ol>
+      <p class="muted small">Limits we state up front: duplicates are caught per scanner; the trusted setup is demo-grade; the authority is a single key (a multisig in production); payment is simulated. Details in the <a href="https://github.com/Harshittgupta/Unlink#threat-model-and-limitations">README</a>.</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Unlink · MIT · ETHGlobal Mumbai</span>
+    <a href="audit/">Live audit</a>
+    <a href="https://github.com/Harshittgupta/Unlink">GitHub</a>
+    <button class="link" id="replayTour">Replay tour</button>
+    <span class="muted small" id="build"></span>
+  </footer>
+
+  <aside class="downloads" id="downloads" aria-label="Download the Android apps">
+    <button class="dl-toggle" id="dlToggle" aria-expanded="true">Get the Android apps</button>
+    <div class="dl-body" id="dlBody">
+      <a class="dl" id="dlPass"><canvas id="qrPass" role="img" aria-label="QR code: download Unlink Pass"></canvas><span><b>Unlink Pass</b><small>passenger · .apk</small></span></a>
+      <a class="dl" id="dlScan"><canvas id="qrScan" role="img" aria-label="QR code: download Unlink Scan"></canvas><span><b>Unlink Scan</b><small>ticket checker · .apk</small></span></a>
+      <p class="muted tiny">Built by GitHub Actions from this repo. Android 9+.</p>
+    </div>
+  </aside>
+
+  <div class="coach" id="coach" hidden role="dialog" aria-live="polite">
+    <p id="coachText"></p>
+    <div class="coach-actions"><button class="link" id="coachSkip">Skip tour</button><button class="ghost" id="coachNext" hidden>Next</button></div>
+  </div>
+  <div class="hand" id="hand" hidden aria-hidden="true"></div>
+
+  <script src="zk/snarkjs.min.js"></script>
+  <script src="demo.js"></script>
+</body>
+</html>

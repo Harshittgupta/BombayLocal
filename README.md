@@ -2,7 +2,9 @@
 
 Offline, privacy-preserving transit pass verification for Mumbai suburban railways.
 
-**Public audit page:** https://harshittgupta.github.io/Unlink/ checks the live claims (active issuers, latest root on Ethereum = signed root on Arkiv, issuer signature, root expiry, root rate, verification key hash) straight from Sepolia and Arkiv in your browser. Source: [`audit/index.html`](audit/index.html), one static file.
+**Live demo:** https://harshittgupta.github.io/Unlink/ — two phones in your browser. Buy a pass (simulated payment), watch the issuer publish its root on Ethereum, then drag the ticket checker's phone onto the code: Green, Amber, Red, checked offline with 0 network requests. Real Sepolia + Arkiv data, real Groth16 proofs; the browser scanner passes the same 73-case conformance suite as the Android scanner. Android APKs: [latest release](https://github.com/Harshittgupta/Unlink/releases/latest).
+
+**Public audit page:** https://harshittgupta.github.io/Unlink/audit/ checks the live claims (active issuers, latest root on Ethereum = signed root on Arkiv, issuer signature, root expiry, root rate, verification key hash) straight from Sepolia and Arkiv in your browser. Source: [`audit/index.html`](audit/index.html), one static file.
 
 **Hosted issuer:** https://unlink-issuer.duckdns.org (`/health`). Both apps buy passes and upload scan batches here, from any network. It runs on an Oracle Cloud Always Free VM behind HTTPS (Caddy), with no access logs; setup in [`issuer/deploy/README.md`](issuer/deploy/README.md). Showing and scanning a pass never use it.
 

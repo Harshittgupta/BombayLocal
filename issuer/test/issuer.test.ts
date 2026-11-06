@@ -20,6 +20,7 @@ import { rebuildTree } from "../src/tree.ts";
 import { makeLogger } from "../src/logger.ts";
 import { AUTO_PUBLISH_DELAY, autoPublishDelay, hasUnpublishedLeaves } from "../src/autopublish.ts";
 import { PurchaseLimiter } from "../src/ratelimit.ts";
+import { corsHook } from "../src/cors.ts";
 import Fastify from "fastify";
 
 const PRODUCTS = loadProducts();
@@ -239,5 +240,27 @@ describe("no client address in issuer logs (invariant 1)", () => {
     expect(out).toContain("boom");
     expect(out).toContain("/purchase");
     for (const leak of ["203.0.113.9", "51515", "s3cret", "x-forwarded-for", "?x=1"]) expect(out).not.toContain(leak);
+  });
+});
+
+describe("CORS for the live demo page (src/cors.ts)", () => {
+  it("12. only the demo origin, only /purchase and /health, preflight answered", async () => {
+    const app = Fastify();
+    app.addHook("onRequest", corsHook(["https://harshittgupta.github.io"]));
+    app.post("/purchase", async () => ({ ok: 1 }));
+    app.get("/health", async () => ({ ok: true }));
+    app.post("/admin/publish-root", async () => ({ ok: 1 }));
+    const demo = "https://harshittgupta.github.io";
+    const pre = await app.inject({ method: "OPTIONS", url: "/purchase", headers: { origin: demo, "access-control-request-method": "POST" } });
+    expect(pre.statusCode).toBe(204);
+    expect(pre.headers["access-control-allow-origin"]).toBe(demo);
+    expect(pre.headers["access-control-allow-headers"]).toBe("content-type");
+    const buy = await app.inject({ method: "POST", url: "/purchase", headers: { origin: demo }, payload: {} });
+    expect(buy.headers["access-control-allow-origin"]).toBe(demo);
+    const evil = await app.inject({ method: "POST", url: "/purchase", headers: { origin: "https://evil.example" }, payload: {} });
+    expect(evil.headers["access-control-allow-origin"]).toBeUndefined();
+    const admin = await app.inject({ method: "POST", url: "/admin/publish-root", headers: { origin: demo }, payload: {} });
+    expect(admin.headers["access-control-allow-origin"]).toBeUndefined();
+    await app.close();
   });
 });
