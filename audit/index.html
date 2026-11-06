@@ -494,7 +494,7 @@ async function run() {
   if (sepolia !== CONFIG.sepoliaRpc) params.set("sepolia", sepolia);
   if (arkivUrl !== CONFIG.arkivRpc) params.set("arkiv", arkivUrl);
   history.replaceState(null, "", params.toString() ? `?${params}` : location.pathname);
-  // A custom provider can answer with anything, including fake "all green" data: say so loudly.
+  // A custom provider can answer with anything, including untrue "all green" data: say so loudly.
   if (params.toString()) {
     notices.push(h("div", { class: "err", role: "alert" },
       h("strong", {}, "Custom data source in use"),
