@@ -15,7 +15,7 @@
 *Formerly Unlink.* Live data depends on the old name, so it stays in the signing tag `UNLINK-ROOT-v1`, the Arkiv tags `unlink.*`, the package IDs `xyz.unlink.*`, the verified Registry source and the circuit.
 
 ## Problem
-Mumbai's suburban railway carries millions of commuters a day, and passes are still checked by hand. In FY 2025–26, Central and Western Railway in Mumbai detected **over 46 lakh (4.6 million) ticketless or irregular-travel cases** and collected **about ₹262 crore** in fines ([Free Press Journal](https://www.freepressjournal.in/mumbai/mumbai-local-train-cr-wr-collect-whopping-262-crore-in-fines-from-ticketless-travellers-within-a-year), from railway data). Checks are slow in a packed coach, and online checks fail where trains lose signal. Digital passes usually add a server that sees every check, which turns a ticket into a tracking record.
+Mumbai's suburban railway carries millions of commuters a day, and passes are still checked by hand. In 2025–26, Mumbai's Central Railway (16.16 lakh cases, incl. mail/express) and Western Railway (~30 lakh, to February 2026) caught **about 46 lakh ticketless or irregular travellers** and collected **nearly ₹262 crore** in fines ([Free Press Journal](https://www.freepressjournal.in/mumbai/mumbai-local-train-cr-wr-collect-whopping-262-crore-in-fines-from-ticketless-travellers-within-a-year), from railway data). Checks are slow in a packed coach, and online checks fail where trains lose signal. Digital passes usually add a server that sees every check, which turns a ticket into a tracking record.
 
 **The one question:** can a ticket checker know a pass is valid, **offline**, without learning who you are?
 
@@ -65,7 +65,7 @@ Running your own issuer: [`issuer/deploy/README.md`](issuer/deploy/README.md). E
   1. Install both APKs. Open BombayLocal Scan once while online so it syncs (the chip says "Synced").
   2. Buy a pass in BombayLocal Pass and wait until it says **Ready offline** (about a minute).
   3. Put the passenger phone in airplane mode. Show the QR from the lock screen or the notification, and scan it.
-- **Test censorship resistance:** in BombayLocal Pass → Settings, set the Issuer URL to `https://issuer.invalid`. Refresh and scanning still work; only Buy fails.
+- **Test censorship resistance:** with a pass already bought, set BombayLocal Pass → Settings → Issuer URL to `https://issuer.invalid`. Refresh and scanning still work; only Buy fails.
 
 ## CROPS
 - **C (censorship resistance).** With the issuer off or hostile, existing passes keep refreshing and verifying for up to 36 h: scanners work offline, and phones refresh from Arkiv and Ethereum, never the issuer. New passes need the issuer or a replacement the authority registers. App endpoints are editable in Settings.
@@ -92,10 +92,10 @@ More detail: [schema](arkiv/schema.md) · [why Arkiv](arkiv/why-arkiv.md) · [ho
 The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 - **Duplicates are caught per scanner:** a screenshot shown to two checkers within 10 minutes passes both (scan batches only *measure* this).
 - **Demo-grade trusted setup** (one phase-2 contribution) and an **EOA authority** (a multisig in production).
-- **Revocation delay:** a revoked pass works on its old root for up to 36 h, unless the authority raises the floor.
-- **Download size:** phones fetch 32 bytes per live pass, about 32 MB at a million. Production needs delta sync.
+- **Revocation delay:** up to 36 h on the old root, unless the authority raises the floor.
+- **Download size:** 32 bytes per live pass (~32 MB per million); production needs delta sync.
 - **Simulated purchase.** Everything else is real.
-- **Lock-screen code:** whoever holds the phone can show it, and an app with notification access can read it (valid for its 10 minutes only).
+- **Lock-screen code:** whoever holds the phone, or an app with notification access, can use the current 10-minute code.
 - **A fresh pass narrows its root:** at low traffic the buyer is briefly alone on the newest root.
 - **The APKs are debug builds:** someone holding your unlocked phone with USB debugging on could inspect the app and copy the secret. Production ships signed, non-debuggable builds.
 - **Testnets only;** the issuer's free Oracle VM can be paused after 7 idle days.
@@ -103,8 +103,8 @@ The full table is in [SPEC.md §8](SPEC.md). Stated up front:
 ## Path to production
 - **Governance and setup:** a multisig authority and a multi-party trusted-setup ceremony.
 - **Scale:** delta leaf sync and tree rotation.
-- **Publishing:** a fixed publish cadence (every 15 min) instead of after each purchase.
-- **Real use:** a payment integration and an Arkiv access key, then a pilot with one operator.
+- **Publishing:** a fixed 15-minute cadence instead of after each purchase.
+- **Real use:** payments, an Arkiv access key, then a one-operator pilot.
 
 ## AI-use disclosure
 Built with **Claude Code** (Anthropic) for planning, code, tests, docs and deployment, module by module. A human reviewed every task, and a fresh-context review agent critiqued each one; findings and fixes are logged in [`docs/REVIEWS.md`](docs/REVIEWS.md).
