@@ -1,0 +1,17 @@
+[02:03:34] created 0xca0334c8770ffbd3fab6af8343191f056aa62175bd9066bfb66e6fa7410d884a
+           tx 0xfee76b3d07b3da42a9ccccb4b9c10aaee3c109d22058ef81639ca7e60fe17313  (https://rabdi.explorer.arkiv.network/tx/0xfee76b3d07b3da42a9ccccb4b9c10aaee3c109d22058ef81639ca7e60fe17313)
+           block 272426, expiresAt block 272484 (+58 blocks)
+           query: arkiv.schema = str('unlink.expiryDemo') AND type = str('unlink.expiryDemo') AND issuer = addr(0x8d3713FBad1A2E40F40de56D37eab09513cb060B) AND $key = key(0xca0334c8770ffbd3fab6af8343191f056aa62175bd9066bfb66e6fa7410d884a) AND $owner = addr(0x8d3713FBad1A2E40F40de56D37eab09513cb060B) AND $creator = addr(0x8d3713FBad1A2E40F40de56D37eab09513cb060B)
+[02:03:34] query before expiry -> 1 entity (expiresAt 272484)
+[02:03:34] block 272426, 58 blocks to go
+[02:03:50] block 272434, 50 blocks to go
+[02:04:05] block 272441, 43 blocks to go
+[02:04:20] block 272449, 35 blocks to go
+[02:04:36] block 272457, 27 blocks to go
+[02:04:51] block 272464, 20 blocks to go
+[02:05:06] block 272472, 12 blocks to go
+[02:05:22] block 272480, 4 blocks to go
+[02:05:37] block 272487 > expiresAt 272484
+[02:05:37] query after expiry -> 0 entities
+[02:05:38] arkiv_getEntity -> null (entity is gone)
+EXPIRY OK: the entity was readable before its expiry block and is gone after it.

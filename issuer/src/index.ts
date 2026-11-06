@@ -4,7 +4,7 @@ export * from "./purchase.ts";
 export * from "./sign.ts";
 export * from "./registry.ts";
 export * from "./tree.ts";
-export * from "./arkiv.ts";
+export * from "./arkiv/index.ts";
 export * from "./scan.ts";
 export * from "./publisher.ts";
 export * from "./logger.ts";

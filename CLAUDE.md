@@ -86,8 +86,10 @@ Load these files on demand only; don't read them all every session:
 #              --etherscan-api-key $ETHERSCAN_API_KEY --constructor-args <authority> 60
 #            (use the publicnode RPC; the Alchemy key under-estimates creation gas. deployments.json has the live address)
 # issuer:    cd issuer && npm ci && npm test            (vitest; node:sqlite, real circuit proof)
-#            cd issuer && npm start                      (Fastify; needs .env: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP)
-#            cd issuer && npm run publish-root           (posts a real root on Sepolia via publicnode)
+#            cd issuer && npm start                      (Fastify + 6 h heartbeat; reads ../.env: ISSUER_PRIVATE_KEY, ADMIN_TOKEN, SEPOLIA_RPC_URL_BACKUP, ARKIV_*)
+#            cd issuer && npm run publish-root           (Arkiv batches/revocations -> postRoot on Sepolia via publicnode -> Arkiv SignedRoot)
+# arkiv:     cd issuer && npm run arkiv-roundtrip        (REAL Rabdi + Sepolia: publish, read back, rebuild == signed == on-chain root)
+#            cd issuer && npm run arkiv-expiry           (2-minute entity, gone after its expiry block; ~2.5 min)
 # apps:      ./gradlew assembleDebug   (inside each app)
 ```
 

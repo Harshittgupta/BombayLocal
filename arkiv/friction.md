@@ -46,3 +46,27 @@ Format per entry: Expected / Actual / Repro / Suggestion.
 - **Actual:** `arkiv_getBlockTiming` returns `current_block`, `current_block_time`, `duration`. `arkiv_query` returns `blockNumber` (a hex string), while `current_block` is a decimal number.
 - **Repro:** `curl -X POST $ARKIV_RPC_URL -d '{"jsonrpc":"2.0","id":1,"method":"arkiv_getBlockTiming","params":[]}'`
 - **Suggestion:** use one casing and one number encoding (hex vs decimal) in every response, and document both.
+
+## 9. `arkiv_query` returns an undocumented `cursor`
+- **Expected:** paging by `limit` + `offset` only. The query docs say keyset paging (`$key > key(..)`) is the way to page without gaps, and no cursor is mentioned.
+- **Actual:** a page that may have more rows comes back with `"cursor":"b64:CnPKK4RBwb8AAAAAAAAAAQ"` next to `data` and `blockNumber`. The SDK 1.0.1 `runQuery` ignores it.
+- **Repro:** `arkiv_query` with `"limit":"0x1"` against a filter that matches more than one entity.
+- **Suggestion:** document the cursor (how to pass it back, how long it stays valid) or remove it. A Kotlin client written only from the docs would never use it.
+
+## 10. `rabdi()` throws without an access key, but the public endpoint works fine
+- **Expected:** `rabdi()` with no arguments uses the public RPC, as the plain `https://rpc.rabdi…` URL in the docs suggests.
+- **Actual:** `rabdi()` throws `MissingAccessKeyError`. You must pass `rabdi({ accessKey: "" })`, which then prints a rate-limit warning on every process start, even when a custom `http(ARKIV_RPC_URL)` transport overrides the URL.
+- **Repro:** `import { rabdi } from "@arkiv-network/sdk/chains"; rabdi()`.
+- **Suggestion:** make the key optional and warn only when the chain's own URL is actually used.
+
+## 11. Raw JSON-RPC values have a different shape from the SDK's
+- **Expected:** the docs' `{name, type, value}` attributes with the value in its natural form.
+- **Actual:** u64 values come back as hex quantities (`"0x4"`), bytes as `0x` hex, and addresses lowercased. Attributes are sorted by name, and the SDK-added `arkiv.schema` attribute appears too. None of this is on the JSON-RPC page, and a non-JS client (our Kotlin scanner) needs every one of these facts.
+- **Repro:** the judge query in `arkiv/schema.md`.
+- **Suggestion:** add one full raw response with every attribute type to the JSON-RPC docs.
+
+## 12. `ExpirationTime.fromSeconds` throws on an odd number of seconds
+- **Expected:** `fromSeconds(n)` rounds to whole blocks (2 s), since the docs say to compute expiry "from durations", and a deadline minus `now` is any integer.
+- **Actual:** `InvalidExpiryError: a lifetime must be a multiple of the 2s block time, got 133187`. It is thrown at write time, so in our flow it fired AFTER the on-chain `postRoot`, which left root 4 on Sepolia with no SignedRoot on Arkiv. Our first live run passed only because that lifetime happened to be even.
+- **Repro:** `ExpirationTime.fromSeconds(133187)`.
+- **Suggestion:** round up by default, or add `{ round: "up" }`, and state the multiple-of-block rule on the expiration page. (Our fix: `lifetimeSeconds()` rounds up, and the publisher re-publishes a missing SignedRoot for the latest root on the next run.)

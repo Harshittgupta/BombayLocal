@@ -1,10 +1,10 @@
-// Runs the publisher once against the real Sepolia Registry and prints the tx hash (SPEC R5, M5 done-when).
+// Runs the publisher once: Arkiv LeafBatches/Revocations, Registry.postRoot on Sepolia, then the SignedRoot on Arkiv.
 // Usage (from issuer/, with the repo .env loaded):  npm run publish-root
 import { IssuerDb } from "./db.ts";
 import { loadDeployment, loadEnv, loadProducts } from "./config.ts";
 import { purchase } from "./purchase.ts";
 import { RegistryClient } from "./registry.ts";
-import { NoopArkivPublisher } from "./arkiv.ts";
+import { makeArkiv } from "./arkiv/index.ts";
 import { publishRoot } from "./publisher.ts";
 import { makeLogger } from "./logger.ts";
 import { randomSecret, idCommitment } from "@unlink/protocol";
@@ -22,7 +22,7 @@ if (db.allLeaves().length === 0) {
   log.info({ product: "day-pass" }, "seeded one purchase for the publish demo");
 }
 
-const signed = await publishRoot({ db, registry, arkiv: new NoopArkivPublisher((o, m) => log.info(o, m)), deployment, log });
+const signed = await publishRoot({ db, registry, arkiv: makeArkiv(env.issuerPrivateKey).writer, deployment, log });
 log.info(
   { rootId: signed.rootId, txHash: signed.txHash, issuedAt: signed.issuedAt, expiresAt: signed.expiresAt },
   "published root on Sepolia",

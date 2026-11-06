@@ -9,17 +9,21 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx src/server.ts",
-    "publish-root": "tsx src/cli-publish.ts",
+    "start": "tsx --env-file-if-exists=../.env src/server.ts",
+    "publish-root": "tsx --env-file-if-exists=../.env src/cli-publish.ts",
+    "arkiv-roundtrip": "tsx --env-file-if-exists=../.env scripts/arkiv-roundtrip.ts",
+    "arkiv-expiry": "tsx --env-file-if-exists=../.env scripts/arkiv-expiry-demo.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "sign-fixtures": "tsx scripts/make-sign-fixtures.ts"
   },
   "dependencies": {
+    "@arkiv-network/sdk": "1.0.1",
     "@unlink/protocol": "file:../protocol",
     "ethers": "6.17.0",
     "fastify": "5.12.8",
-    "pino": "10.4.0"
+    "pino": "10.4.0",
+    "viem": "2.57.16"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

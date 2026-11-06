@@ -4,15 +4,19 @@ import { loadDeployment, loadEnv, loadProducts, loadScannerAllowlist } from "./c
 import { purchase } from "./purchase.ts";
 import { acceptScanBatch, type ScanBatch } from "./scan.ts";
 import { RegistryClient } from "./registry.ts";
-import { NoopArkivPublisher, type ArkivPublisher } from "./arkiv.ts";
+import { makeArkiv, type ArkivWriter } from "./arkiv/index.ts";
 import { publishRoot } from "./publisher.ts";
 import { makeLogger, type Logger } from "./logger.ts";
+import { ROOT_HEARTBEAT, day } from "@unlink/protocol";
 
 export type Server = Awaited<ReturnType<typeof buildServer>>;
 
+/** How often the heartbeat checks whether a root is due (SPEC §3.1 heartbeat). */
+const HEARTBEAT_CHECK = 10 * 60;
+
 export async function buildServer(opts: {
   db?: IssuerDb;
-  arkiv?: ArkivPublisher;
+  arkiv?: ArkivWriter;
   logger?: Logger;
 } = {}) {
   const env = loadEnv();
@@ -22,7 +26,33 @@ export async function buildServer(opts: {
   const log = opts.logger ?? makeLogger();
   const db = opts.db ?? new IssuerDb("issuer.db");
   const registry = new RegistryClient(env.rpcUrl, env.issuerPrivateKey, deployment.registry);
-  const arkiv = opts.arkiv ?? new NoopArkivPublisher((o, m) => log.info(o, m));
+  const arkiv = opts.arkiv ?? makeArkiv(env.issuerPrivateKey).writer;
+
+  // One publish at a time (admin endpoint and heartbeat share it).
+  let inFlight: Promise<unknown> = Promise.resolve();
+  const publish = () => {
+    const run = inFlight.then(() => publishRoot({ db, registry, arkiv, deployment, log }));
+    inFlight = run.catch(() => undefined);
+    return run;
+  };
+
+  /**
+   * SPEC §3.1 heartbeat: a root at least every ROOT_HEARTBEAT, and once within the first hour after 00:00 IST
+   * (that root also zeroes expired batches), even with no new purchases.
+   */
+  const heartbeatDue = (now: number): boolean => {
+    const last = db.latestRoot();
+    if (!last) return db.allLeaves().length > 0;
+    return now - last.issuedAt >= ROOT_HEARTBEAT - HEARTBEAT_CHECK || day(now) !== day(last.issuedAt);
+  };
+  const startHeartbeat = (): NodeJS.Timeout => {
+    const tick = () => {
+      if (!heartbeatDue(Math.floor(Date.now() / 1000))) return;
+      publish().catch((e) => log.error({ err: (e as Error).message }, "heartbeat publish failed"));
+    };
+    tick();
+    return setInterval(tick, HEARTBEAT_CHECK * 1000);
+  };
 
   // disableRequestLogging: Fastify's default per-request lines include the client IP (remoteAddress) and URL.
   // That would link a buyer's IP to purchase time (invariant 1). We log only our own count/rootId/product lines.
@@ -73,7 +103,7 @@ export async function buildServer(opts: {
       return reply.code(401).send({ error: "unauthorized" });
     }
     try {
-      const signed = await publishRoot({ db, registry, arkiv, deployment, log });
+      const signed = await publish();
       return {
         rootId: signed.rootId,
         root: signed.root,
@@ -100,11 +130,12 @@ export async function buildServer(opts: {
     }
   });
 
-  return { app, db, registry, deployment, env, log };
+  return { app, db, registry, deployment, env, log, publish, heartbeatDue, startHeartbeat };
 }
 
 // Entry point: `npm start`
 if (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1] ?? "")) {
-  const { app, env, log } = await buildServer();
+  const { app, env, log, startHeartbeat } = await buildServer();
+  startHeartbeat();
   app.listen({ port: env.port, host: "0.0.0.0" }).then((addr) => log.info({ addr }, "issuer listening"));
 }
