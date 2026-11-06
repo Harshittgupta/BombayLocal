@@ -49,6 +49,7 @@ cd circuits  && npm ci && npm test && cd ..          # real proofs with the comm
 cd issuer    && npm ci && npm test && cd ..          # purchases, publishing, limits, CORS
 cd web       && npm ci && npm test && npm run build && cd ..   # browser scanner vs all 73 QR fixtures
 cd contracts && forge test && cd ..                  # Registry
+export ANDROID_HOME=/path/to/Android/Sdk JAVA_HOME=/path/to/jdk-21   # or sdk.dir=… in apps/*/local.properties
 cd apps/scanner   && ./gradlew :verifier:test :app:assembleDebug && cd ../..
 cd apps/passenger && ./gradlew :app:assembleDebug && cd ../..
 node scripts/check-audit.mjs                         # the audit page's checks against live Sepolia + Arkiv
