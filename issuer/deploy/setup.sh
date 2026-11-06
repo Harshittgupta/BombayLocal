@@ -55,9 +55,11 @@ install -d -o caddy -g caddy -m 700 /var/lib/caddy
 install -d -o root -g root -m 755 /etc/caddy
 
 # Code.
-if [ -d /opt/unlink/.git ]; then git -C /opt/unlink fetch -q origin; else git clone -q "$REPO" /opt/unlink; fi
-git -C /opt/unlink checkout -q "$REF"
-git -C /opt/unlink pull -q --ff-only || true
+# git runs as the checkout owner (git refuses root on a repo owned by another user).
+install -d -o unlink -g unlink -m 755 /opt/unlink
+if [ -d /opt/unlink/.git ]; then su -s /bin/sh unlink -c "git -C /opt/unlink fetch -q origin"; else su -s /bin/sh unlink -c "git clone -q $REPO /opt/unlink"; fi
+su -s /bin/sh unlink -c "git -C /opt/unlink checkout -q $REF && git -C /opt/unlink pull -q --ff-only"
+
 chown -R unlink:unlink /opt/unlink
 su -s /bin/sh unlink -c 'cd /opt/unlink/protocol && npm ci --omit=dev --ignore-scripts --no-audit --no-fund'
 su -s /bin/sh unlink -c 'cd /opt/unlink/issuer && npm ci --ignore-scripts --no-audit --no-fund'
