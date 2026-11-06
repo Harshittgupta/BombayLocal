@@ -322,7 +322,7 @@ function buildClaims(chain, arkiv, nowSec) {
 function chainClaims(chain, arkiv, nowSec) {
   const claims = [];
   claims.push({ ok: true, title: "The Registry contract is deployed on Sepolia", detail: `${CONFIG.registry} · ${chain.issuers.length} issuer(s) · ${chain.rootCount} root(s) posted` });
-  claims.push({ ok: chain.authority === CONFIG.authority.toLowerCase(), title: "Only the stated authority can add or suspend issuers", detail: `authority() = ${chain.authority}` });
+  claims.push({ ok: chain.authority === CONFIG.authority.toLowerCase(), title: "The Registry's authority is the stated address", detail: `authority() = ${chain.authority} (immutable; the verified source on Etherscan shows only it can add or suspend issuers)` });
   for (const iss of chain.issuers) {
     const st = chain.states[iss];
     const short = iss.slice(0, 10) + "…";
@@ -340,8 +340,15 @@ function chainClaims(chain, arkiv, nowSec) {
     claims.push({ ok: same, title: `Issuer ${short}'s latest root is published on Arkiv`, detail: same ? `rootId ${sr.rootId} on both, root ${sr.root.slice(0, 12)}…` : `chain rootId ${st.latestRootId}, Arkiv rootId ${sr.rootId}` });
     claims.push({ ok: sr.signer === iss && sr.registry === CONFIG.registry.toLowerCase() && sr.chainId === CONFIG.chainId, title: "That root is signed by the issuer", detail: sr.signer ? `signature recovers to ${sr.signer}` : "signature does not recover" });
     const ttlOk = sr.expiresAt - sr.issuedAt === CONFIG.ROOT_TTL && sr.issuedAt === st.latestPostedAt;
+    // Scanners reject a root from a suspended issuer or below the issuer's floor (SPEC §5 steps 4–5), whatever its expiry.
+    const acceptable = st.active && st.latestRootId >= st.floor;
     const left = sr.expiresAt - nowSec;
-    claims.push({ ok: !ttlOk ? false : left > 6 * 3600 ? true : left > 0 ? "warn" : false, title: "Passes on that root are still accepted", detail: !ttlOk ? "expiry is not exactly issuedAt + 36 h, or issuedAt ≠ on-chain postedAt" : left > 0 ? "a root lives exactly 36 h after it is posted · " : "the issuer must post a new root · ", countdown: ttlOk ? sr.expiresAt : undefined });
+    claims.push({
+      ok: !ttlOk || !acceptable ? false : left > 6 * 3600 ? true : left > 0 ? "warn" : false,
+      title: "Passes on that root are still accepted",
+      detail: !acceptable ? (st.active ? `rootId ${st.latestRootId} is below the issuer's floor ${st.floor}` : "the issuer is suspended") : !ttlOk ? "expiry is not exactly issuedAt + 36 h, or issuedAt ≠ on-chain postedAt" : left > 0 ? "issuer active, root at or above the floor, a root lives exactly 36 h · " : "the issuer must post a new root · ",
+      countdown: ttlOk && acceptable ? sr.expiresAt : undefined,
+    });
   }
   return claims;
 }
@@ -452,8 +459,11 @@ function renderVerify(chain) {
   const iss = chain?.issuers?.[0] ?? "<issuer>";
   const q = `${arkivBase("unlink.signedRoot", iss)} ORDER BY rootId:u64 DESC`;
   const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "arkiv_query", params: [q, { select: { key: true, owner: true, creator: true, attributes: true }, limit: "0x1" }] });
-  $("curl-arkiv").textContent = `curl -s -X POST ${$("arkiv-rpc").value} \\\n  -H 'content-type: application/json' \\\n  --data '${body.replace(/'/g, `'"'"'`)}'`;
-  $("cast-cmd").textContent = `cast call ${CONFIG.registry} \\\n  "issuerState(address)(bool,uint64,bytes32,uint64,uint64)" ${iss} \\\n  --rpc-url ${$("sepolia-rpc").value}`;
+  // Only validated URLs reach the copyable commands, single-quoted (safeUrl rejects quotes, $, backticks, spaces).
+  const ark = safeUrl($("arkiv-rpc").value) ?? CONFIG.arkivRpc;
+  const sep = safeUrl($("sepolia-rpc").value) ?? CONFIG.sepoliaRpc;
+  $("curl-arkiv").textContent = `curl -s -X POST '${ark}' \\\n  -H 'content-type: application/json' \\\n  --data '${body.replace(/'/g, `'"'"'`)}'`;
+  $("cast-cmd").textContent = `cast call ${CONFIG.registry} \\\n  "issuerState(address)(bool,uint64,bytes32,uint64,uint64)" ${iss} \\\n  --rpc-url '${sep}'`;
 }
 
 function tick() {
@@ -464,18 +474,35 @@ function tick() {
   }
 }
 
+/** A plain http(s) URL with no characters that could break out of a quoted shell argument, or null. */
+function safeUrl(v) {
+  const s = String(v ?? "").trim();
+  if (!/^https?:\/\/[^\s'"`$\\;|&<>(){}]+$/.test(s)) return null;
+  try { new URL(s); return s; } catch { return null; }
+}
+
 let running = false;
 async function run() {
   if (running) return;
   running = true;
-  const sepolia = $("sepolia-rpc").value.trim();
-  const arkivUrl = $("arkiv-rpc").value.trim();
+  const notices = [];
+  let sepolia = safeUrl($("sepolia-rpc").value);
+  let arkivUrl = safeUrl($("arkiv-rpc").value);
+  if (!sepolia) { notices.push(errorCard("Sepolia RPC URL", "not a plain http(s) URL", "Using the default provider instead.")); sepolia = CONFIG.sepoliaRpc; $("sepolia-rpc").value = sepolia; }
+  if (!arkivUrl) { notices.push(errorCard("Arkiv RPC URL", "not a plain http(s) URL", "Using the default endpoint instead.")); arkivUrl = CONFIG.arkivRpc; $("arkiv-rpc").value = arkivUrl; }
   const params = new URLSearchParams();
   if (sepolia !== CONFIG.sepoliaRpc) params.set("sepolia", sepolia);
   if (arkivUrl !== CONFIG.arkivRpc) params.set("arkiv", arkivUrl);
   history.replaceState(null, "", params.toString() ? `?${params}` : location.pathname);
+  // A custom provider can answer with anything, including fake "all green" data: say so loudly.
+  if (params.toString()) {
+    notices.push(h("div", { class: "err", role: "alert" },
+      h("strong", {}, "Custom data source in use"),
+      h("span", {}, `These results come from ${[sepolia !== CONFIG.sepoliaRpc ? sepolia : null, arkivUrl !== CONFIG.arkivRpc ? arkivUrl : null].filter(Boolean).join(" and ")}, not the default public endpoints. A provider you don't trust could report false data.`),
+      h("span", { class: "muted" }, "Clear both fields' changes, or open the page without ?sepolia= / ?arkiv=, to use the defaults.")));
+  }
   $("status").textContent = "Reading Sepolia and Arkiv…";
-  $("errors").replaceChildren();
+  $("errors").replaceChildren(...notices);
   renderClaims([{ ok: null, title: "Checking…", detail: "reading public data" }]);
   let chain = null, arkiv = null;
   const errors = [];
@@ -489,7 +516,7 @@ async function run() {
   } catch (e) {
     errors.push(errorCard("Arkiv", e, "Check the Arkiv RPC URL above; the public Rabdi endpoint is rate limited, so wait a few seconds and try again."));
   }
-  $("errors").replaceChildren(...errors);
+  $("errors").replaceChildren(...notices, ...errors);
   renderClaims(buildClaims(chain, arkiv, Math.floor(Date.now() / 1000)));
   renderIssuers(chain, arkiv);
   renderRegistry(chain, arkiv);
