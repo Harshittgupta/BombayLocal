@@ -56,11 +56,13 @@ class Refresher(
         val record = try {
             val st = data.issuerState(issuer)
             if (!st.active) throw RefreshRejected("issuer-inactive")
-            if (st.latestRootId < st.floor) throw RefreshRejected("latest-below-floor")
+            // SPEC §3.1 step 1: a held root below the floor is dropped FIRST (its proofs would be BELOW_FLOOR at every
+            // scanner), even when the issuer has not yet posted a root at or above the new floor.
             if (current != null && current.signedRoot.rootId < st.floor) {
-                repo.dropRoot() // our root was cut off by the authority: its cached proofs are useless now
+                repo.dropRoot()
                 current = null
             }
+            if (st.latestRootId < st.floor) throw RefreshRejected("latest-below-floor")
             val cur = current
             if (cur != null && st.latestRootId < cur.signedRoot.rootId) throw RefreshRejected("chain-behind-current")
             if (cur != null && st.latestRootId == cur.signedRoot.rootId) {
@@ -68,6 +70,8 @@ class Refresher(
             } else {
                 moveTo(st, pass, now)
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e // a cancelled/replaced job is not a failed update
         } catch (e: Exception) {
             val reason = (e as? RefreshRejected)?.reason ?: e.javaClass.simpleName
             Log.i(TAG, "refresh kept previous root: $reason")
@@ -85,6 +89,9 @@ class Refresher(
         if (roots.isEmpty()) throw RefreshRejected("signed-root-not-on-arkiv-yet")
         if (roots.size > 1) throw RefreshRejected("conflicting-signed-roots")
         val sr = roots[0]
+        // SPEC §8 tagging: the rootId must be the chain's, not whatever an Arkiv endpoint returns. Otherwise an issuer
+        // could sign the same root under a different rootId per phone and recognise each phone by it at scans.
+        if (sr.rootId != st.latestRootId) throw RefreshRejected("rootId-not-latest-on-chain")
         if (!sr.issuer.equals(issuer, true) || !sr.registry.equals(registry, true) || sr.chainId != chainId) {
             throw RefreshRejected("wrong-issuer-or-chain")
         }

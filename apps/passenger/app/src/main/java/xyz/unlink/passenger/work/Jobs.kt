@@ -15,7 +15,10 @@ import androidx.work.WorkerParameters
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.unlink.passenger.Settings
+import xyz.unlink.passenger.net.IssuerClient
 import xyz.unlink.passenger.pass.KeystoreSecretStore
+import xyz.unlink.passenger.pass.Pass
+import xyz.unlink.passenger.pass.Purchaser
 import xyz.unlink.passenger.pass.NetworkPublicData
 import xyz.unlink.passenger.pass.PassRepository
 import xyz.unlink.passenger.pass.PreProver
@@ -35,6 +38,12 @@ object Jobs {
         val s = Settings(context)
         val protocol = ProtocolEngine(WebAppEngine.shared(context))
         Refresher(PassRepository(context), protocol, NetworkPublicData(s.sepoliaRpcUrl, s.arkivRpcUrl)).refresh()
+    }
+
+    /** Purchase under the same lock, so a concurrent refresh cannot store the old pass's path after the new pass. */
+    suspend fun buy(context: Context, product: String): Pass = mutex.withLock {
+        val protocol = ProtocolEngine(WebAppEngine.shared(context))
+        Purchaser(PassRepository(context), KeystoreSecretStore(context), protocol, IssuerClient(Settings(context).issuerUrl)).buy(product)
     }
 
     suspend fun preprove(context: Context): PreproveStats = mutex.withLock {
@@ -75,7 +84,8 @@ class PreproveWorker(context: Context, params: WorkerParameters) : CoroutineWork
 /**
  * When proofs get made: on app start, on every unlock while the process is alive (ACTION_USER_PRESENT, registered in
  * UnlinkApp; Android no longer delivers it to manifest receivers), and hourly as a backstop. PREPROVE = 12 epochs
- * (2 h), so the hourly job always leaves ≥ 1 h of proofs cached for the lock screen.
+ * (2 h), so while the phone is in use (unlocked at least hourly) about 1 h or more of proofs stay cached; a phone left
+ * locked for over 2 h has none until its next unlock (by design: proving needs the unlocked Keystore key).
  */
 object EpochScheduler {
     private const val PERIODIC_PREPROVE = "preprove-periodic"

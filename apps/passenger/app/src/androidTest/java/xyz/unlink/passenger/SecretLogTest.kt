@@ -28,6 +28,21 @@ class SecretLogTest {
 
     private val ctx = InstrumentationRegistry.getInstrumentation().targetContext
 
+    /** Review fix: a failed purchase (pending secret discarded) leaves the current secret usable; a commit swaps it. */
+    @Test
+    fun failedPurchaseKeepsTheCurrentSecret() {
+        val store = KeystoreSecretStore(ctx, "test-staging.bin", "unlink-test-staging")
+        val current = store.createSecret()
+        val staged = store.createPending()
+        store.discardPending()
+        assertEquals(current, store.readSecret())
+        val next = store.createPending()
+        store.commitPending()
+        assertEquals(next, store.readSecret())
+        assertFalse(staged == next)
+        store.clear()
+    }
+
     @Test
     fun secretNeverReachesLogcat() = runBlocking {
         val store = KeystoreSecretStore(ctx, "test-secret.bin", "unlink-test-secret")

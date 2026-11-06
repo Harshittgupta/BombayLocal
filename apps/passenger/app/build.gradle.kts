@@ -26,6 +26,8 @@ android {
         buildConfigField("long", "CHAIN_ID", "${sepolia["chainId"]}L")
         buildConfigField("String", "REGISTRY", "\"${sepolia["registry"]}\"")
         buildConfigField("String", "ISSUER", "\"${sepolia["issuer"]}\"")
+        // SPEC §3.1: the phone refreshes on unlock at most once per ROOT_INTERVAL (the Registry's minRootInterval).
+        buildConfigField("long", "ROOT_INTERVAL", "${sepolia["minRootInterval"]}L")
         // Endpoint defaults; all three are editable in Settings (SPEC §8: RPC and Arkiv endpoints are configurable).
         buildConfigField("String", "ARKIV_RPC_DEFAULT", "\"https://rpc.rabdi.db-chain.testnet.arkiv.network\"")
         buildConfigField("String", "SEPOLIA_RPC_DEFAULT", "\"https://ethereum-sepolia-rpc.publicnode.com\"")

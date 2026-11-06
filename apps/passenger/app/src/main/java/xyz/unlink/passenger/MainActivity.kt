@@ -33,15 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import xyz.unlink.passenger.net.IssuerClient
-import xyz.unlink.passenger.pass.KeystoreSecretStore
 import xyz.unlink.passenger.pass.PassRepository
 import xyz.unlink.passenger.pass.PassStatus
 import xyz.unlink.passenger.pass.PreProver
-import xyz.unlink.passenger.pass.Purchaser
 import xyz.unlink.passenger.pass.Refresher
-import xyz.unlink.passenger.prover.ProtocolEngine
-import xyz.unlink.passenger.prover.WebAppEngine
 import xyz.unlink.passenger.ui.PassNotification
 import xyz.unlink.passenger.ui.QrActivity
 import xyz.unlink.passenger.work.EpochScheduler
@@ -82,11 +77,7 @@ class MainActivity : ComponentActivity() {
             busy = "Buying…"
             error = null
             try {
-                val protocol = ProtocolEngine(WebAppEngine.shared(this@MainActivity))
-                Purchaser(
-                    PassRepository(this@MainActivity), KeystoreSecretStore(this@MainActivity), protocol,
-                    IssuerClient(Settings(this@MainActivity).issuerUrl),
-                ).buy(product)
+                Jobs.buy(this@MainActivity, product)
             } catch (e: Exception) {
                 error = "Purchase failed. Is the issuer reachable? (${e.javaClass.simpleName})"
             }

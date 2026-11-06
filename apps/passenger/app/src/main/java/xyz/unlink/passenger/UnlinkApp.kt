@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.core.content.ContextCompat
+import xyz.unlink.passenger.pass.PassRepository
 import xyz.unlink.passenger.ui.PassNotification
 import xyz.unlink.passenger.work.EpochScheduler
 
@@ -17,7 +18,12 @@ class UnlinkApp : Application() {
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_USER_PRESENT) EpochScheduler.refreshNow(context)
+            if (intent.action != Intent.ACTION_USER_PRESENT) return
+            // SPEC §3.1 / §8: refresh on unlock at most once per ROOT_INTERVAL (limits what RPC providers see);
+            // otherwise just top up the proof cache.
+            val last = PassRepository(context).lastRefresh()?.at ?: 0L
+            if (System.currentTimeMillis() / 1000 - last >= BuildConfig.ROOT_INTERVAL) EpochScheduler.refreshNow(context)
+            else EpochScheduler.preproveNow(context)
         }
     }
 

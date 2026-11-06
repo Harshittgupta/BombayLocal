@@ -161,6 +161,36 @@ class RefreshTest {
     @Test
     fun tamperedRootIsRejected() = runBlocking { assertRejectedKeepingOldRoot(tamper(recorded(), "signedRoot", "root")) }
 
+    /** Review fix (SPEC §8 tagging): a SignedRoot whose rootId is not the chain's latestRootId is refused. */
+    @Test
+    fun signedRootWithAnotherRootIdIsRejected() = runBlocking {
+        val rec = recorded()
+        val attrs = rec.getJSONObject("signedRoot").getJSONArray("data").getJSONObject(0).getJSONArray("attributes")
+        for (k in 0 until attrs.length()) {
+            val a = attrs.getJSONObject(k)
+            if (a.getString("name") == "rootId") a.put("value", "0x" + (java.lang.Long.decode(a.getString("value")) + 1000).toString(16))
+        }
+        assertRejectedKeepingOldRoot(rec)
+    }
+
+    /** Review fix (SPEC §3.1 step 1): after a floor raise above our root, our root is dropped even before a new one exists. */
+    @Test
+    fun rootBelowRaisedFloorIsDropped() = runBlocking {
+        val protocol = ProtocolEngine(WebAppEngine.shared(ctx))
+        val good = Replay(recorded())
+        val repo = PassRepository(dir).apply { savePass(livePass(protocol, good)) }
+        Refresher(repo, protocol, good).refresh()
+        assertNotNull(repo.rootState())
+        val rec = recorded()
+        val hex = rec.getString("issuerState").removePrefix("0x")
+        val latest = java.math.BigInteger(hex.substring(192, 256), 16)
+        val floor = (latest + java.math.BigInteger.ONE).toString(16).padStart(64, '0') // authority: newFloor = rootCount + 1
+        rec.put("issuerState", "0x" + hex.substring(0, 64) + floor + hex.substring(128))
+        val r = Refresher(repo, protocol, Replay(rec)).refresh()
+        assertFalse(r.ok)
+        assertNull("a root below the floor must be dropped with its proofs", repo.rootState())
+    }
+
     @Test
     fun foreignCreatorIsIgnored() = runBlocking {
         val rec = recorded()
