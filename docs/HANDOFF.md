@@ -116,3 +116,14 @@ Numbers: verify 62–78 ms median with Room. 90 JVM + 10 device tests. Real run:
 Decisions: the queue holds only a nullifier's first sighting, closed epochs, 24 h cap; sync is rollback-safe (floor and rootId never decrease, suspension sticky); time resync only when the clock is off by more than 60 s; sepolia.drpc.org dropped (free plan lost Sepolia).
 Open: HTTPS issuer for production uploads; no PIN on Settings; MINORs (seedVk re-seed on a VK_HASH change; per-frame Red log/haptic while a code is held in view); the scanner and passenger tests are not in CI (devices only).
 Next: module-9 (audit page) — /clear, then /model sonnet, /effort low.
+
+## module-9 · audit-page · 2026-11-06 16:15 · commits 9ffe64b, 957e45f
+Exists: audit/index.html, one static file live at https://harshittgupta.github.io/Unlink/. `.github/workflows/pages.yml` deploys only audit/ on pushes that touch it; Pages source = GitHub Actions, already enabled.
+- Loads: ethers 6.17.0 (cdnjs, SRI-pinned); Sepolia Registry via JsonRpcProvider at a snapshot of head − 3, with events in 9k-block chunks; Arkiv via fetch, filtered on creator = owner = writer.
+- Claims checklist: Registry deployed, authority, issuer active, root rate, chain root = Arkiv SignedRoot, signature → issuer, still accepted (active + at or above the floor + 36 h TTL, live countdown), vk sha256 = pinned.
+- Also shows: issuer cards, Registry and verification-key cards, and "verify yourself" (curl / cast with validated, quoted URLs).
+- Safety: custom-RPC warning banner, error cards. No storage, cookies, wallet or web fonts.
+Interfaces: `CONFIG` in the AUDIT-LOGIC block (registry, authority, deployBlock, PINNED_VK_SHA256 = 59cb8b11…). `node scripts/check-audit.mjs` runs that block in Node against live data and checks the SRI (exit 1 on a false claim); M10 preflight can reuse it.
+Numbers: all 8 claims live green; root 10, 16 leaves, 4 revocation records, ScannerList 1 (the A142 scanner).
+Open (MINOR): no getLogs retry/backoff; floor-raise rate exemption is looser than the contract; no CSP; actions not SHA-pinned.
+Next: UI task (saved in memory: booking-style passenger app + easy TC scanner; no station pickers; keep "Simulated payment"; test with `adb install -r` + `am instrument`), then module-10 (integration) — /clear, then /model sonnet, /effort medium.

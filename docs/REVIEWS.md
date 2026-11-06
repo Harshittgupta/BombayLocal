@@ -24,6 +24,54 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-9 · audit-page (audit/index.html on GitHub Pages)
+Commit: 9ffe64b (build)  (pushed: yes; the "Audit page" Pages workflow succeeded, https://harshittgupta.github.io/Unlink/ returns HTTP 200)
+Reviewer: hostile-reviewer subagent (Sonnet, effort medium per finish-task for module-9), fresh context, on 9ffe64b; it re-ran `node scripts/check-audit.mjs`
+Evidence:
+- `node scripts/check-audit.mjs` runs the page's own logic block against LIVE Sepolia + Arkiv with the exact pinned ethers file (SRI verified). All 8 claims pass:
+  - the Registry is deployed;
+  - the authority matches;
+  - the issuer is active;
+  - 10 roots, fastest gap 120 s against the 60 s limit;
+  - rootId 10 is the same on chain and on Arkiv;
+  - the signature recovers to the issuer;
+  - the root is still accepted (about 33 h left);
+  - the vk sha256 equals the pinned hash.
+- Headless Edge renders:
+  - desktop, light, from file:// and from the live Pages URL;
+  - 390 px dark, in an iframe, with no horizontal overflow;
+  - an unreachable Sepolia URL (error card, Arkiv checks still run);
+  - a malicious `?arkiv=` link (rejected, default used) plus a custom Sepolia URL (warning banner).
+Findings:
+- [MAJOR] "Passes on that root are still accepted" ignored issuer state: it showed green for a suspended issuer or a root below the floor. Fixed: it now requires `active && latestRootId >= floor`, with its own detail text.
+- [MAJOR] The copyable curl/cast commands embedded the raw `?arkiv=`/`?sepolia=` values, so a crafted link could put shell commands into the clipboard. Fixed: `safeUrl()` allows only plain http(s) URLs (no quotes, `$`, backticks, spaces or shell metacharacters), invalid values fall back to the defaults with an error card, and commands single-quote the URL.
+- [MAJOR] A custom RPC link could serve fake "all green" state silently. Fixed: a red "Custom data source in use" banner names the non-default endpoint(s).
+- [MINOR] "Only the stated authority can add or suspend issuers" overstated what the page checks (it only compares `authority()`). Fixed anyway, since honest claims are project policy (invariant 7): now "The Registry's authority is the stated address", pointing to the verified source.
+- [MINOR] Not fixed, all low impact on a judge-facing read-only page:
+  - The rate check exempts any gap that straddles a floor raise; the contract enforces the real rule, so there can be no false pass today.
+  - getLogs is sequential with no retry; failure shows an error card.
+  - No CSP; the footer discloses that cdnjs and the RPCs see the visitor's IP.
+  - Pages actions are pinned to major tags.
+  - The `labelled === pinned` vk comparison is redundant with the query filter; the computed sha256 is the real check.
+- XSS: none. All rendering uses textContent; Arkiv `txHash` goes only into a fixed-prefix href.
+- R5: clean. Real reads and real signature recovery, no bypass.
+Fixed in: 957e45f
+Still open: the MINORs above; M10 preflight should also check that the vk hash is equal across circuits/artifacts, the scanner BuildConfig and `audit/index.html` (`PINNED_VK_SHA256`).
+
+Rule check (rule-checker subagent, on 957e45f):
+- R1 auditable repo ............ PASS  (no keys in git; .env.example; ethers pinned 6.17.0 + SRI; README links the live page, which returns HTTP 200)
+- R2 commits proper + same day . PASS  (module-9: 9ffe64b, 957e45f; small; pushed)
+- R3 this review logged ........ PASS  (this entry; hashes resolve)
+- R4 two separate apps ......... PASS  (unchanged: separate Gradle projects and applicationIds, no cross-imports)
+- R5 real web3, no mocks ....... PASS  (live check-audit: all claims real against Sepolia + Arkiv; mock grep finds only issuer/src/purchase.ts, plus benign hits: onRenderProcessGone's `return true`, the bundled protocol.js comment from @noble's "fake accumulator" (already excluded in CI since M7), and audit/index.html's warning about a custom RPC returning fake data; README audit line matches what the page checks)
+- R6 CROPS / Arkiv only ........ PASS
+- Invariants:
+  - 1 PASS: the page reads only public issuer, root, scanner and vk data; no storage, no cookies.
+  - 4 PASS: no trackers in apps/ or audit/.
+  - allowBackup=false in both manifests; no networking in :verifier.
+RULE CHECK: PASS
+Blockers: none
+
 ### 2026-11-06 · module-8b · scanner-app (CameraX + ZXing, Room store, SyncWorker, scanner key, result screens)
 Commit: eca9644 (build)  (pushed: yes)
 Reviewer: hostile-reviewer subagent (Opus, effort high per BUILD_PLAN), fresh context, on 3cf67a6..eca9644; it re-ran `:verifier:test`
