@@ -103,3 +103,16 @@ Numbers: verify() median 48–51 ms on a Nothing A142 (Android 16; parse + curve
 Decisions: debounce is SPEC's 1 s (BUILD_PLAN's 30 s is corrected); nowMs is in ms; the JVM tests run real snarkjs via node (circuits/node_modules); NoNetworkTest scans every dependency class against an exact reviewed java.net allowlist (kotlin-stdlib, bcprov X.509/DRBG).
 Open for M8b: negative-gap guards (clock going backwards) for debounce and lastSync; a periodic nullifier purge (not only on scan); onRenderProcessGone → fail closed + rebuild; VERIFIER_ERROR and clock fixtures; store latestRootId; call verify() off the main thread (the engine enforces this).
 Next: module-8b (scanner app: Room LocalStore, SyncWorker, CameraX + ZXing, result screens) — /clear, then /model sonnet, /effort medium. Needs 2 phones for the airplane-mode scan demo.
+
+## module-8b · scanner-app · 2026-11-06 14:10 · commits eca9644, d7e59e2
+Exists: apps/scanner/app.
+- Scanning: CameraX 1.5.3 + ZXing on the Y plane → OfflineVerifier → full-screen result; a long-press shows latency.
+- Storage: a Room 2.8.4 store (issuer, nullifier, pending_scan, kv) behind RoomVerifierStore.
+- Sync: SyncWorker (hourly + Sync now), the only networking (sync/). Registry from 2 agreeing RPCs at one block; clock offset from block time; Arkiv VerifyKey (hash == VK_HASH), ScannerList, SignedRoot; upload of closed-epoch batches.
+- Key: ScannerKey (secp256k1, Keystore AES-GCM wrap, process-wide lock). Settings: 2 Sepolia RPCs (publicnode + tenderly), Arkiv, issuer URL, checkpoint class.
+- Issuer side: `npm run publish-scanners` (issuer/scanners.json → ScannerList).
+Live state: the A142 scanner `0x6ee7…49d5` is listed (ScannerList 1). The vivo holds a month pass to 2026-12-05 on root 10 (expires ~2026-11-08 01:30 IST: run the issuer for a fresh root, then Refresh on the phone, no USB). Both apps are installed. Gradle's connectedAndroidTest uninstalls them: use `adb install -r` + `am instrument -w xyz.unlink.scanner.test/androidx.test.runner.AndroidJUnitRunner`.
+Numbers: verify 62–78 ms median with Room. 90 JVM + 10 device tests. Real run: Green → Amber → Red in airplane mode; the batch was uploaded and the issuer stored 1.
+Decisions: the queue holds only a nullifier's first sighting, closed epochs, 24 h cap; sync is rollback-safe (floor and rootId never decrease, suspension sticky); time resync only when the clock is off by more than 60 s; sepolia.drpc.org dropped (free plan lost Sepolia).
+Open: HTTPS issuer for production uploads; no PIN on Settings; MINORs (seedVk re-seed on a VK_HASH change; per-frame Red log/haptic while a code is held in view); the scanner and passenger tests are not in CI (devices only).
+Next: module-9 (audit page) — /clear, then /model sonnet, /effort low.

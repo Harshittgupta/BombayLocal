@@ -24,6 +24,67 @@ Blockers: <anything real that is blocked; never replaced by a mock>
 
 ---
 
+### 2026-11-06 · module-8b · scanner-app (CameraX + ZXing, Room store, SyncWorker, scanner key, result screens)
+Commit: eca9644 (build)  (pushed: yes)
+Reviewer: hostile-reviewer subagent (Opus, effort high per BUILD_PLAN), fresh context, on 3cf67a6..eca9644; it re-ran `:verifier:test`
+Evidence:
+- **JVM:** 90/90, including 73 fixtures; 4 are new: clock-backwards debounce, lastSync in the future at 120 s and 121 s, and no vk → VERIFIER_ERROR.
+- **Device (Nothing A142):** 7/7 at eca9644. After the fixes, 10/10, run via `adb install -r` + `am instrument` so the installed apps and their data stay. The tests cover:
+  - all fixtures through the app's Room store and upload queue, plus a logcat check;
+  - the scanner key and its batch signature;
+  - rollback-safe merge, purge and queue behaviour;
+  - a LIVE sync against two real providers and Arkiv;
+  - a provider that lies about issuers(): nothing applied;
+  - the clock offset.
+- **Verify latency:** median 62.5–77.5 ms with the Room store.
+- **Real phone-to-phone run:**
+  - the vivo passenger in airplane mode showed its lock-screen QR (root 9) to the A142 scanner: Green, then Amber, then Red (DB count 4);
+  - the next sync uploaded the signed batch and the issuer accepted it (`stored 1, duplicates 0`);
+  - ScannerList 1 is on Arkiv (tx 0x8a65…0ad6) and the scanner shows `listed`;
+  - a month pass was then bought: root 10 (tx 0x740b…7870); both apps left installed for standalone demos;
+  - after the fixes, a real app sync gave `registry=ok clock=ok vk=ok scannerList=listed`.
+Findings:
+- [MAJOR] **Scanner key race.** ScannerKey's `@Synchronized` lock was per instance. A first-launch race between SyncWorker and Settings could create two keys, so the address shown would differ from the one stored. Fixed: one process-wide lock plus a per-file cache.
+- [MAJOR] **Upload queue kept nullifiers indefinitely** while uploads failed, so a seized scanner could keep its scan history. Fixed:
+  - only a nullifier's first sighting is queued (this also removes the re-upload duplicate inflation and the debounced re-queue MINORs);
+  - only closed epochs (`< e − 1`) are uploaded (this also removes the finer-than-epoch timing MINOR);
+  - entries older than 24 h are dropped unsent, at sync and at app start.
+- [MAJOR] **One RPC was trusted for the Registry.** A lying provider could add an attacker issuer (forged passes Green) or ratchet a floor or suspension. Fixed: both configured providers are read at the same block (min head − 2), and state is applied only if they agree; otherwise `registry=failed`, nothing applied, lastSync unchanged. A device test exercises this with a provider that rewrites issuers().
+- [MAJOR] **SPEC §8 "scanners resync time at each online sync" was not implemented.** Fixed: the agreed newest block timestamp gives a clock offset (applied when it exceeds 60 s), and verify, lastSync and the sync chip all use device time + offset.
+- [MINOR] **SPEC §8 "purged after 2 epochs" vs the queue.** Resolved by the 24 h cap; SPEC §5 M8b note updated.
+- [MINOR] Not fixed:
+  - `seedVk` doesn't re-seed when VK_HASH changes in a new APK;
+  - a Red code held in view logs and vibrates every frame (steps 1–7 never set `sameShowing`).
+- Found during the fixes: `sepolia.drpc.org` no longer serves Sepolia on its free plan (HTTP 400). The backup default is now `https://sepolia.gateway.tenderly.co`; it was checked live for eth_blockNumber, getBlockByNumber and block-pinned eth_call.
+- R5: clean (real Registry, Arkiv, Groth16 and issuer).
+Fixed in: d7e59e2
+Not fixed (deliberate, MINOR, for M10 integration): the `seedVk` re-seed on a VK_HASH change; the per-frame Red log and haptic.
+Still open:
+- The issuer upload is cleartext to localhost via `adb reverse` (demo only); production needs an HTTPS issuer URL.
+- Settings can be edited by whoever holds the scanner. The two-provider rule limits the damage, but there's no settings PIN.
+- The trusted setup is demo-grade, and the authority is an EOA (both known; stated in the README in M11).
+- Root 10 expires 2026-11-08 ~01:30 IST. The issuer must be running (6 h heartbeat) or publish on demand before a later demo.
+
+Rule check (rule-checker subagent, on d7e59e2):
+- R1 auditable repo ............ PASS  (no keys/.env/keystores in git ls-files; .env.example present; explicit versions in package.json and Gradle; fresh clone not tested)
+- R2 commits proper + same day . PASS  (module-8b: eca9644, d7e59e2, small, pushed; origin/main..main empty)
+- R3 this review logged ........ PASS  (this entry; hashes resolve)
+- R4 two separate apps ......... PASS  (separate Gradle projects; applicationIds xyz.unlink.passenger / xyz.unlink.scanner; no cross-imports either way; scanner `:verifier:test :app:assembleDebug` exit 0)
+- R5 real web3, no mocks ....... PASS
+  - Items 1–2: the registry in deployments.json is verifiedSource, and the issuer calls postRoot.
+  - Item 3: the scanner's REGISTRY and CHAIN_ID come from deployments.json via BuildConfig, and sync does raw eth_call issuers()/issuerState() on two providers.
+  - Item 7: the mock grep finds only issuer/src/purchase.ts.
+  - The checker flagged `return true` at WebViewGroth16Engine.kt:121. Re-checked by hand: it is `onRenderProcessGone`'s "handled" flag, not a verify bypass. The verify result is `ok === true` from snarkjs (verify.js:13).
+  - Items 4–6 for the scanner (Arkiv reads, real Groth16) were also confirmed live by the device tests and the real scan run.
+- R6 CROPS / Arkiv only ........ PASS  (Hedera / World ID appear only in docs and config as excluded)
+- Invariants:
+  - 1 PASS: only two Log.i lines, scan status + reason and the sync report. Room tables re-checked by hand: nullifier = {nullifier, epochId, count, firstSeenMs, lastReadMs}; pending_scan = {epochId, nullifier}.
+  - 2 (scanner key) PASS: allowBackup=false in both manifests, and no log line carries the key.
+  - 3 PASS: no networking imports in verifier/src/main; RPC code only in app/.../sync.
+  - 4 PASS: no trackers.
+RULE CHECK: PASS
+Blockers: none
+
 ### 2026-11-06 · module-8a · scanner-verifier (apps/scanner :verifier + WebView engine + fixtures/qr)
 Commit: c95267d (build)  (pushed: yes; CI green incl. the new scanner-verifier job)
 Reviewer: hostile-reviewer subagent (Opus), fresh context, on c7260a8..c95267d; it re-ran `:verifier:test` (83/83)
