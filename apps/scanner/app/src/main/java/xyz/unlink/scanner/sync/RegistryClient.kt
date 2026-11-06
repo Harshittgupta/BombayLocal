@@ -19,9 +19,21 @@ class RegistryClient(
 ) {
     private fun selector(sig: String) = Hash.sha3String(sig).substring(0, 10)
 
-    private fun call(data: String): String {
+    private fun tag(block: Long) = "0x" + java.lang.Long.toHexString(block)
+
+    /** eth_call at a fixed block, so two providers can be compared on exactly the same state. */
+    private fun call(data: String, block: Long): String {
         val tx = JSONObject().put("to", registry).put("data", data)
-        return (rpc("eth_call", JSONArray().put(tx).put("latest")) as String).removePrefix("0x")
+        return (rpc("eth_call", JSONArray().put(tx).put(tag(block))) as String).removePrefix("0x")
+    }
+
+    fun blockNumber(): Long = java.lang.Long.decode(rpc("eth_blockNumber", JSONArray()) as String)
+
+    /** Block timestamp in unix seconds. */
+    fun blockTimestamp(block: Long): Long {
+        val b = rpc("eth_getBlockByNumber", JSONArray().put(tag(block)).put(false)) as? JSONObject
+            ?: throw SyncException("block $block not found")
+        return java.lang.Long.decode(b.getString("timestamp"))
     }
 
     private fun word(hex: String, i: Int): BigInteger {
@@ -35,8 +47,8 @@ class RegistryClient(
     }
 
     /** issuers() → address[] (ABI: offset, length, items). */
-    fun issuers(): List<String> {
-        val hex = call(selector("issuers()"))
+    fun issuers(block: Long): List<String> {
+        val hex = call(selector("issuers()"), block)
         val offset = word(hex, 0).toInt() / 32
         val n = word(hex, offset).toInt()
         if (n > 10_000) throw SyncException("implausible issuer count")
@@ -44,9 +56,9 @@ class RegistryClient(
     }
 
     /** issuerState(address) → (bool active, uint64 floor, bytes32 latestRoot, uint64 latestRootId, uint64 latestPostedAt). */
-    fun issuerState(issuer: String): ChainIssuer {
+    fun issuerState(issuer: String, block: Long): ChainIssuer {
         val arg = issuer.lowercase().removePrefix("0x").padStart(64, '0')
-        val hex = call(selector("issuerState(address)") + arg)
+        val hex = call(selector("issuerState(address)") + arg, block)
         return ChainIssuer(issuer.lowercase(), word(hex, 0).signum() != 0, word(hex, 1).toLong(), word(hex, 3).toLong())
     }
 }

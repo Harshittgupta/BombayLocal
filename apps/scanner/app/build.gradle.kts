@@ -34,7 +34,7 @@ android {
         buildConfigField("String", "VK_HASH", "\"${circuitHashes["verification_key.json"]}\"")
         // Sync endpoints; all editable in Settings (SPEC §8). The backup RPC is a second, independent provider.
         buildConfigField("String", "SEPOLIA_RPC_DEFAULT", "\"https://ethereum-sepolia-rpc.publicnode.com\"")
-        buildConfigField("String", "SEPOLIA_RPC_BACKUP_DEFAULT", "\"https://sepolia.drpc.org\"")
+        buildConfigField("String", "SEPOLIA_RPC_BACKUP_DEFAULT", "\"https://sepolia.gateway.tenderly.co\"")
         buildConfigField("String", "ARKIV_RPC_DEFAULT", "\"https://rpc.rabdi.db-chain.testnet.arkiv.network\"")
         // The demo issuer runs on the laptop; `adb reverse tcp:3000 tcp:3000` makes it localhost on the phone.
         buildConfigField("String", "ISSUER_URL_DEFAULT", "\"http://127.0.0.1:3000\"")

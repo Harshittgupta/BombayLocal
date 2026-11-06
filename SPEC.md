@@ -212,9 +212,14 @@ Target: under 20k constraints (estimate about 6.5k). Record the measured value i
 
 *Implementation note (M8b):*
 - **Clock changes.** A negative debounce gap (the clock moved back) counts as a new showing. A `lastSync` more than `SKEW` in the future is **Red** `SCANNER_STALE`. A clock change can therefore never hide a repeat or extend freshness.
-- **Upload queue.** Besides the step 9 log, each counted nullifier is queued as `(epochId, nullifier)` and nothing else, for the scan-batch upload. The queue entry is deleted once the issuer accepts the batch, and it survives the log purge.
+- **Upload queue.** Besides the step 9 log, a nullifier's **first** sighting is queued as `(epochId, nullifier)` and nothing else, for the scan-batch upload. Each nullifier is therefore uploaded at most once.
+  - Only **closed** epochs (`< e − 1`) are uploaded, so a batch never splits an epoch in time.
+  - The entry is deleted once the issuer accepts the batch.
+  - Entries older than **24 h** are dropped unsent: a scanner that can't upload doesn't keep nullifiers past that limit.
 - **Purging.** The log is also purged at app start and on every sync, not only during scans.
-- **Rollback guards.** Sync never lowers a floor or a `latestRootId`, and never re-activates a suspended issuer, so a lying or stale RPC cannot roll scanner state back.
+- **Two providers must agree.** Sync reads `issuers()` and `issuerState` from **two independent Sepolia providers at the same block**. Nothing is applied unless they return identical state, so one lying RPC can't add an issuer, suspend one, or raise a floor.
+- **Rollback guards.** The merge never lowers a floor or a `latestRootId`, and never re-activates a suspended issuer.
+- **Time resync (§8).** Each sync compares the device clock with the agreed newest block timestamp. If they differ by more than 60 s (block lag is about 12 s), the scanner stores the offset and applies it to every `verify`.
 
 **Sync.** Sync is online only and never blocks verification. It reads from the Registry: `issuers()`, then `issuerState(issuer)` for each one. It reads from Arkiv: each issuer's `ScannerList` and the authority's `VerifyKey`, filtered on `$creator`/`$owner`. The vk hash must match the hash bundled in the APK; if it doesn't, the new vk is rejected. Sync then uploads scan batches.
 

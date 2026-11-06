@@ -98,7 +98,7 @@ class SettingsActivity : Activity() {
                     "latest root ${it.latestRootId} (Arkiv ${it.arkivRootId}), this scanner ${if (it.listed) "listed" else "not listed"}"
             }
             val text = buildString {
-                appendLine(ResultText.syncAge(dao.get(RoomVerifierStore.K_LAST_SYNC)?.toLongOrNull() ?: 0, System.currentTimeMillis()))
+                appendLine(ResultText.syncAge(dao.get(RoomVerifierStore.K_LAST_SYNC)?.toLongOrNull() ?: 0, System.currentTimeMillis() + (dao.get(RoomVerifierStore.K_CLOCK_OFFSET)?.toLongOrNull() ?: 0L)))
                 dao.get(RoomVerifierStore.K_SYNC_STATUS)?.let { appendLine("Last sync: $it") }
                 appendLine("Verification key ${dao.get(RoomVerifierStore.K_VK_HASH)?.take(16) ?: "missing"}…")
                 appendLine("Scans waiting to upload: ${dao.pendingEpochs().sumOf { dao.pending(it).size }}")

@@ -20,7 +20,9 @@ class ScannerApp : Application() {
         Executors.newSingleThreadExecutor().execute {
             val dao = ScannerDb.get(ctx).dao()
             seedVk(ctx, dao)
-            dao.purgeBefore(Math.floorDiv(System.currentTimeMillis() / 1000, Params.EPOCH) - 1)
+            val e = Math.floorDiv(System.currentTimeMillis() / 1000, Params.EPOCH)
+            dao.purgeBefore(e - 1)
+            dao.dropPendingBefore(e - Syncer.PENDING_MAX_EPOCHS)
         }
         SyncWorker.schedule(this)
     }

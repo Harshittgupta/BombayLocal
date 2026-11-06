@@ -38,8 +38,16 @@ class ScannerKey(context: Context, fileName: String = "scanner-key.bin", private
         return gen.generateKey()
     }
 
-    @Synchronized
-    private fun keyPair(): ECKeyPair {
+    /**
+     * Load or create the key under ONE process-wide lock (review fix): SyncWorker and the Settings screen each build
+     * their own ScannerKey, and two concurrent first-time creations would otherwise race on the file and the
+     * Keystore alias. The result is cached per file, so only the first call touches disk or the Keystore.
+     */
+    private fun keyPair(): ECKeyPair = synchronized(LOCK) {
+        cache[file.path] ?: loadOrCreate().also { cache[file.path] = it }
+    }
+
+    private fun loadOrCreate(): ECKeyPair {
         if (file.exists()) {
             val blob = file.readBytes()
             val c = Cipher.getInstance("AES/GCM/NoPadding")
@@ -71,8 +79,14 @@ class ScannerKey(context: Context, fileName: String = "scanner-key.bin", private
         return s.r + s.s + s.v
     }
 
-    fun clear() {
+    fun clear() = synchronized(LOCK) {
+        cache.remove(file.path)
         file.delete()
         KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(alias)
+    }
+
+    companion object {
+        private val LOCK = Any()
+        private val cache = HashMap<String, ECKeyPair>()
     }
 }

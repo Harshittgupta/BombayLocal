@@ -73,6 +73,7 @@ class OnDeviceVerifierTest {
         val nullifiers = mutableSetOf<String>()
         for ((name, j) in all) {
             val (st, db) = store(j)
+            val hadPrior = QrPayload.parse(j.getString("qrText"))?.let { st.nullifier(it.nullifier) != null } ?: false
             val r = v.verify(j.getString("qrText"), j.getLong("nowMs"), st)
             val ex = j.getJSONObject("expected")
             if (r.status.name != ex.getString("result") || r.reason.name != ex.getString("reason")) {
@@ -88,10 +89,10 @@ class OnDeviceVerifierTest {
                 val a = ex.getJSONArray("absent")
                 for (i in 0 until a.length()) if (st.nullifier(BigInteger(a.getString(i))) != null) failures += "$name: not purged"
             }
-            // Counted scans (and only those) are queued for the scan-batch upload.
+            // Only a nullifier's first sighting is queued for the scan-batch upload (review fix: no re-uploads).
             val reachedStep8 = r.status != Status.RED || r.reason.name == "DUPLICATE"
             val queued = db.dao().pendingEpochs().flatMap { db.dao().pending(it) }
-            if (reachedStep8 != queued.isNotEmpty()) failures += "$name: queue ${queued.size} after ${r.status}/${r.reason}"
+            if ((reachedStep8 && !hadPrior) != queued.isNotEmpty()) failures += "$name: queue ${queued.size} after ${r.status}/${r.reason}"
             db.close()
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())

@@ -14,64 +14,86 @@ import java.math.BigInteger
 import java.security.MessageDigest
 
 /** What one sync did, in state names and counts only (safe to log and show). */
-data class SyncReport(val registry: String, val vk: String, val scannerList: String, val upload: String) {
-    override fun toString() = "registry=$registry vk=$vk scannerList=$scannerList upload=$upload"
+data class SyncReport(val registry: String, val clock: String, val vk: String, val scannerList: String, val upload: String) {
+    override fun toString() = "registry=$registry clock=$clock vk=$vk scannerList=$scannerList upload=$upload"
 }
 
-/** Where sync reads and writes. `rpc*` default to real HTTP; tests may pass the same functions. */
+/** Where sync reads and writes. */
 class SyncConfig(
     val chainId: Long,
     val registry: String,
     val authority: String,
     val vkHash: String,
+    /** Two independent Sepolia providers; both must agree on the Registry state (see [Syncer]). */
     val sepoliaRpcs: List<String>,
     val arkivRpc: String,
     val issuerUrl: String?,
 )
 
+/** JSON-RPC transport for one endpoint URL (real HTTP by default; tests can wrap it). */
+typealias RpcFactory = (url: String) -> (method: String, params: JSONArray) -> Any
+
 /**
  * SPEC §5 sync, online only, never called by verify:
- * 1. Registry: issuers() + issuerState(i). The floor never moves down, a suspension is sticky (the Registry never
- *    re-adds a suspended issuer) and latestRootId never moves down, so a lying or stale RPC can't roll state back.
+ * 1. Registry: issuers() + issuerState(i) from TWO independent providers, read at the same block. They must return
+ *    identical state, or nothing is applied (one lying or compromised RPC can't add an issuer, suspend one or raise
+ *    a floor). The merge never lowers a floor or latestRootId and never re-activates a suspended issuer.
  *    lastSync advances only when this step succeeds.
- * 2. Arkiv: the authority's VerifyKey (accepted only if sha256 == the APK's pinned VK_HASH), each issuer's latest
+ * 2. Clock (SPEC §8 "scanners resync time at each online sync"): the agreed newest block timestamp gives a clock
+ *    offset, applied to every verify when the device clock is off by more than [CLOCK_TOLERANCE_MS].
+ * 3. Arkiv: the authority's VerifyKey (accepted only if sha256 == the APK's pinned VK_HASH), each issuer's latest
  *    ScannerList and SignedRoot rootId (status).
- * 3. Upload pending scan batches (sorted nullifiers, signed with the scanner key) to the issuer.
- * 4. Purge the nullifier log (epochId < e − 1).
+ * 4. Upload scan batches of CLOSED epochs only (< e − 1, so no finer-than-epoch timing), sorted and signed.
+ *    Queue entries older than [PENDING_MAX_EPOCHS] are dropped unsent (privacy over audit completeness).
+ * 5. Purge the nullifier log (epochId < e − 1).
  */
-class Syncer(private val dao: ScannerDao, private val key: ScannerKey, private val cfg: SyncConfig) {
+class Syncer(
+    private val dao: ScannerDao,
+    private val key: ScannerKey,
+    private val cfg: SyncConfig,
+    private val rpcFor: RpcFactory = { url -> { m, p -> Http.jsonRpc(url, m, p) } },
+) {
 
-    fun sync(nowMs: Long): SyncReport {
-        dao.put(KvRow(RoomVerifierStore.K_SYNC_ATTEMPT, nowMs.toString()))
-        val registry = runCatching { syncRegistry(nowMs) }.fold({ "ok ($it issuers)" }, { "failed (${it.javaClass.simpleName}: ${it.message})" })
+    fun sync(deviceNowMs: Long): SyncReport {
+        dao.put(KvRow(RoomVerifierStore.K_SYNC_ATTEMPT, deviceNowMs.toString()))
+        var clock = "unchanged"
+        val registry = runCatching {
+            val (n, blockTs) = syncRegistry()
+            val offset = clockOffset(deviceNowMs, blockTs)
+            dao.put(KvRow(RoomVerifierStore.K_CLOCK_OFFSET, offset.toString()))
+            dao.put(KvRow(RoomVerifierStore.K_LAST_SYNC, (deviceNowMs + offset).toString()))
+            clock = if (offset == 0L) "ok" else "corrected ${offset / 1000} s"
+            n
+        }.fold({ "ok ($it issuers)" }, { "failed (${it.javaClass.simpleName}: ${it.message})" })
+        val nowMs = deviceNowMs + (dao.get(RoomVerifierStore.K_CLOCK_OFFSET)?.toLongOrNull() ?: 0L)
         val vk = runCatching { syncVk() }.getOrElse { "failed (${it.javaClass.simpleName})" }
         val list = runCatching { syncArkivStatus() }.getOrElse { "failed (${it.javaClass.simpleName})" }
-        val upload = runCatching { uploadBatches() }.getOrElse { "failed (${it.javaClass.simpleName})" }
-        dao.purgeBefore(Math.floorDiv(nowMs / 1000, Params.EPOCH) - 1)
-        val report = SyncReport(registry, vk, list, upload)
+        val upload = runCatching { uploadBatches(nowMs) }.getOrElse { "failed (${it.javaClass.simpleName})" }
+        dao.purgeBefore(epochOf(nowMs) - 1)
+        val report = SyncReport(registry, clock, vk, list, upload)
         dao.put(KvRow(RoomVerifierStore.K_SYNC_STATUS, report.toString()))
         return report
     }
 
-    private fun syncRegistry(nowMs: Long): Int {
-        var last: Exception? = null
-        for (url in cfg.sepoliaRpcs.filter { it.isNotBlank() }) {
-            try {
-                val client = RegistryClient(cfg.registry, cfg.chainId) { m, p -> Http.jsonRpc(url, m, p) }
-                client.checkChain()
-                val states = client.issuers().map { client.issuerState(it) }
-                for (s in states) dao.upsertIssuer(merge(dao.issuer(s.address), s))
-                dao.put(KvRow(RoomVerifierStore.K_LAST_SYNC, nowMs.toString()))
-                return states.size
-            } catch (e: Exception) {
-                last = e // try the backup provider
-            }
-        }
-        throw last ?: SyncException("no Sepolia RPC configured")
+    /** Returns (issuer count, agreed newest block timestamp in seconds). */
+    private fun syncRegistry(): Pair<Int, Long> {
+        val urls = cfg.sepoliaRpcs.map { it.trim() }.filter { it.isNotBlank() }.distinct()
+        if (urls.size < 2) throw SyncException("two different Sepolia RPC providers are required")
+        val clients = urls.map { RegistryClient(cfg.registry, cfg.chainId, rpcFor(it)) }
+        clients.forEach { it.checkChain() }
+        val heads = clients.map { it.blockNumber() }
+        val block = heads.min() - CONFIRMATIONS
+        val views = clients.map { c -> c.issuers(block).map { c.issuerState(it, block) } }
+        if (views.distinct().size != 1) throw SyncException("RPC providers disagree on the Registry; nothing applied")
+        val states = views.first()
+        // Newest timestamp either provider reports (blocks trail real time by up to one slot; see CLOCK_TOLERANCE_MS).
+        val blockTs = clients.zip(heads).maxOf { (c, h) -> c.blockTimestamp(h) }
+        for (s in states) dao.upsertIssuer(merge(dao.issuer(s.address), s))
+        return states.size to blockTs
     }
 
     private fun syncVk(): String {
-        val bytes = ArkivReader { m, p -> Http.jsonRpc(cfg.arkivRpc, m, p) }.verifyKey(cfg.authority, cfg.vkHash) ?: return "not on Arkiv (kept local)"
+        val bytes = ArkivReader(rpcFor(cfg.arkivRpc)).verifyKey(cfg.authority, cfg.vkHash) ?: return "not on Arkiv (kept local)"
         if (sha256(bytes) != cfg.vkHash) return "rejected (hash mismatch)"
         dao.put(KvRow(RoomVerifierStore.K_VK, String(bytes, Charsets.UTF_8)))
         dao.put(KvRow(RoomVerifierStore.K_VK_HASH, cfg.vkHash))
@@ -79,7 +101,7 @@ class Syncer(private val dao: ScannerDao, private val key: ScannerKey, private v
     }
 
     private fun syncArkivStatus(): String {
-        val arkiv = ArkivReader { m, p -> Http.jsonRpc(cfg.arkivRpc, m, p) }
+        val arkiv = ArkivReader(rpcFor(cfg.arkivRpc))
         val me = key.address
         var listed = 0
         for (row in dao.issuers()) {
@@ -92,10 +114,13 @@ class Syncer(private val dao: ScannerDao, private val key: ScannerKey, private v
         return if (listed > 0) "listed" else "not listed"
     }
 
-    private fun uploadBatches(): String {
+    private fun uploadBatches(nowMs: Long): String {
+        val e = epochOf(nowMs)
+        dao.dropPendingBefore(e - PENDING_MAX_EPOCHS)
         val url = cfg.issuerUrl?.takeIf { it.isNotBlank() } ?: return "no issuer URL"
+        val closed = dao.pendingEpochs().filter { it < e - 1 }
         var sent = 0
-        for (epoch in dao.pendingEpochs()) {
+        for (epoch in closed) {
             val raw = dao.pending(epoch)
             val sorted = ScanBatch.sorted(raw.map(::BigInteger))
             val scanner = key.address
@@ -110,11 +135,29 @@ class Syncer(private val dao: ScannerDao, private val key: ScannerKey, private v
             dao.dequeue(epoch, raw)
             sent++
         }
-        return "ok ($sent batches)"
+        val waiting = dao.pendingEpochs().size
+        return "ok ($sent batches" + (if (waiting > 0) ", $waiting epoch(s) still open" else "") + ")"
     }
 
     companion object {
-        /** Rollback-safe merge of a fresh Registry read into the stored row. */
+        /** Read the Registry this many blocks below the lower head, so both providers have the block. */
+        const val CONFIRMATIONS = 2L
+
+        /** Upload-queue lifetime: 24 h of epochs. Older entries are dropped unsent. */
+        const val PENDING_MAX_EPOCHS = 24 * 3600 / Params.EPOCH
+
+        /** Block timestamps trail real time by up to ~12 s plus RPC latency; only a larger error is corrected. */
+        const val CLOCK_TOLERANCE_MS = 60_000L
+
+        fun epochOf(ms: Long) = Math.floorDiv(Math.floorDiv(ms, 1000L), Params.EPOCH)
+
+        /** Offset to add to the device clock, or 0 when it is within tolerance of the chain's time. */
+        fun clockOffset(deviceNowMs: Long, blockTimestampSec: Long): Long {
+            val d = blockTimestampSec * 1000 - deviceNowMs
+            return if (Math.abs(d) <= CLOCK_TOLERANCE_MS) 0L else d
+        }
+
+        /** Rollback-safe merge of an agreed Registry read into the stored row. */
         fun merge(old: IssuerRow?, s: ChainIssuer): IssuerRow = IssuerRow(
             address = s.address,
             active = s.active && (old?.active ?: true),

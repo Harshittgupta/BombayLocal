@@ -75,6 +75,10 @@ interface ScannerDao {
     @Query("SELECT COUNT(*) FROM nullifier")
     fun nullifierCount(): Int
 
+    /** Drops queue entries older than the upload window, unsent (privacy over audit completeness). */
+    @Query("DELETE FROM pending_scan WHERE epochId < :epochId")
+    fun dropPendingBefore(epochId: Long)
+
     @Query("SELECT DISTINCT epochId FROM pending_scan ORDER BY epochId")
     fun pendingEpochs(): List<Long>
 

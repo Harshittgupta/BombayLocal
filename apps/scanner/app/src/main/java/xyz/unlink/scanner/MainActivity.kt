@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
     private val refreshChip = object : Runnable {
         override fun run() {
             io.execute {
-                val text = ResultText.syncAge(store.lastSyncMs(), System.currentTimeMillis())
+                val text = ResultText.syncAge(store.lastSyncMs(), store.nowMs())
                 main.post { chip.text = text }
             }
             main.postDelayed(this, 30_000)
@@ -118,7 +118,7 @@ class MainActivity : ComponentActivity() {
     /** Analyzer thread. */
     private fun onText(text: String, decodeMs: Double) {
         val t0 = System.nanoTime()
-        val r = verifier.verify(text, System.currentTimeMillis(), store)
+        val r = verifier.verify(text, store.nowMs(), store) // device clock + sync-time correction (SPEC §8)
         val verifyMs = (System.nanoTime() - t0) / 1e6
         if (!r.sameShowing) Log.i(TAG, "scan ${r.status} ${r.reason}") // result and reason code only
         main.post { show(r, decodeMs, verifyMs) }
