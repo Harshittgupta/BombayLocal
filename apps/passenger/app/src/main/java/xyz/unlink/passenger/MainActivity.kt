@@ -209,7 +209,7 @@ class MainActivity : ComponentActivity() {
         getSystemService(android.app.StatusBarManager::class.java).requestAddTileService(
             android.content.ComponentName(this, xyz.unlink.passenger.ui.PassTileService::class.java),
             "Show pass",
-            android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_view),
+            android.graphics.drawable.Icon.createWithResource(this, R.drawable.ic_stat_pass),
             mainExecutor,
         ) { }
     }

@@ -66,6 +66,8 @@ fun PassesScreen(
 ) {
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            xyz.unlink.passenger.ui.components.BrandMark()
+            Spacer(Modifier.width(12.dp))
             Text("Your pass", style = Type.title, color = Ink.text, modifier = Modifier.weight(1f))
             IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, contentDescription = "Settings", tint = Ink.muted) }
         }

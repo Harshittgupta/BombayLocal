@@ -4,7 +4,7 @@
 // files are copied from the committed passenger-app assets and their sha256 must match the manifest, or the build fails.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -73,6 +73,7 @@ for (const f of ["pass.wasm", "pass_final.zkey", "verification_key.json"]) {
   copyFileSync(join(www, f), join(out, "zk", f));
 }
 copyFileSync(join(www, "snarkjs.min.js"), join(out, "zk", "snarkjs.min.js"));
+cpSync(join(here, "static", "assets"), join(out, "assets"), { recursive: true }); // logo, wordmark, favicons, banner
 copyFileSync(join(root, "audit/index.html"), join(out, "audit/index.html"));
 writeFileSync(join(out, ".nojekyll"), "");
 

@@ -4,12 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/png" href="../assets/favicon-48.png">
 <title>BombayLocal Audit</title>
 <meta name="description" content="Check BombayLocal's public claims yourself: issuers, roots, signatures, expiry and the verification key, read live from Ethereum Sepolia and Arkiv.">
 <!--
   BombayLocal audit page (SPEC §9). ONE static file, no build step, no server.
   Reads ONLY public data: the Sepolia Registry over JSON-RPC (ethers, pinned + SRI) and Arkiv over JSON-RPC (fetch).
-  No tracking scripts, no wallet, no cookies, no storage, no web fonts: the only requests are ethers from cdnjs and
+  No tracking scripts, no wallet, no cookies, no storage, no web fonts: the only requests are this site's own logo images, ethers from cdnjs and
   the two RPC endpoints shown on the page (both editable).
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js"
@@ -48,6 +49,7 @@ h3 { font-size: 1.15rem; }
 p { margin: 0; max-width: 70ch; }
 a { color: var(--eth); text-underline-offset: 3px; }
 a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--eth); outline-offset: 2px; }
+.logo { display: block; border-radius: 10px; margin-bottom: 14px; }
 .eyebrow { font-family: var(--f-mono); font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 header { display: flex; flex-direction: column; gap: 12px; }
 .lede { color: var(--ink2); font-size: 1.08rem; }
@@ -107,6 +109,7 @@ footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--lin
 <body>
 <div class="page">
   <header>
+    <img class="logo" src="../assets/logo-192.png" alt="BombayLocal" width="44" height="44" onerror="this.remove()">
     <div class="eyebrow">BombayLocal · public audit · Ethereum Sepolia + Arkiv</div>
     <h1>BombayLocal Audit</h1>
     <p class="lede">BombayLocal makes claims about who may issue passes, which pass list is current, and which verification key scanners use. This page checks each claim live, straight from Ethereum and Arkiv, in your browser. Nothing here comes from the BombayLocal team's servers.</p>

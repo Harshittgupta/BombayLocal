@@ -47,7 +47,11 @@ fun BuyScreen(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Buy a pass", style = Type.title, color = Ink.text)
+            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                xyz.unlink.passenger.ui.components.BrandMark()
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 12.dp))
+                Text("Buy a pass", style = Type.title, color = Ink.text)
+            }
             Text("Your pass lives on this phone and works without signal.", style = Type.body, color = Ink.muted)
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Products.all.forEach { p ->

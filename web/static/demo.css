@@ -27,10 +27,8 @@ button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
 .top { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; max-width: 1180px; margin: 0 auto; }
-.brand { font-weight: 600; font-size: 20px; display: flex; align-items: center; gap: 10px; }
-.mark { width: 22px; height: 14px; border-radius: 3px; background: var(--text);
-  -webkit-mask: radial-gradient(circle at 0 50%, transparent 4px, #000 4.5px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 4px, #000 4.5px) right / 51% 100% no-repeat;
-          mask: radial-gradient(circle at 0 50%, transparent 4px, #000 4.5px) left / 51% 100% no-repeat, radial-gradient(circle at 100% 50%, transparent 4px, #000 4.5px) right / 51% 100% no-repeat; }
+.brand { display: flex; align-items: center; line-height: 0; }
+.brand img { height: 40px; width: auto; mix-blend-mode: lighten; } /* the artwork's navy ground melts into the page */
 .top nav { display: flex; gap: 20px; }
 .top nav a { color: var(--muted); text-decoration: none; }
 .top nav a:hover { color: var(--text); }

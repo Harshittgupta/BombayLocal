@@ -222,6 +222,16 @@ val TicketIcon: ImageVector by lazy {
     }.build()
 }
 
+/** The BombayLocal app mark (the launcher icon artwork), small, for screen headers. */
+@Composable
+fun BrandMark(size: androidx.compose.ui.unit.Dp = 32.dp, modifier: Modifier = Modifier) {
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(xyz.unlink.passenger.R.drawable.bombaylocal_logo),
+        contentDescription = "BombayLocal",
+        modifier = modifier.size(size).clip(RoundedCornerShape(size / 4)),
+    )
+}
+
 /** Section wrapper used on the settings screen: a sentence-case title and its content on the raised colour. */
 @Composable
 fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {

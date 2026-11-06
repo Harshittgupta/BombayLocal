@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -144,7 +146,12 @@ class SettingsActivity : ComponentActivity() {
         Column(Modifier.fillMaxSize().background(Ink.ground).safeDrawingPadding().verticalScroll(rememberScrollState())) {
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 20.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { finish() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Ink.text) }
-                Text("Scanner settings", style = Type.title, color = Ink.text)
+                Text("Scanner settings", style = Type.title, color = Ink.text, modifier = Modifier.weight(1f))
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.bombaylocal_logo),
+                    contentDescription = "BombayLocal",
+                    modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)),
+                )
             }
             Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(28.dp)) {
                 Group("Checkpoint") {

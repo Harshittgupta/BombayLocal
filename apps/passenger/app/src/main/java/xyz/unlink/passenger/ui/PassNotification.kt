@@ -96,7 +96,7 @@ object PassNotification {
 
         fun build(): Notification.Builder {
             val b = Notification.Builder(context, CHANNEL)
-                .setSmallIcon(android.R.drawable.ic_menu_view)
+                .setSmallIcon(xyz.unlink.passenger.R.drawable.ic_stat_pass)
                 .setContentTitle("BombayLocal Pass")
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setContentIntent(open)

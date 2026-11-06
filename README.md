@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/banner.png" alt="BombayLocal" width="640"></p>
+
 # BombayLocal
 
 Offline, privacy-preserving transit pass verification for Mumbai suburban railways.
